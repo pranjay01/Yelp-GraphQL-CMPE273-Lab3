@@ -24,7 +24,6 @@ const customerSchema = new Schema(
     FindMeIn: { type: String },
     Website: { type: String },
     JoinDate: { type: Date },
-    RegisteredEvents: [String],
     ReviewCount: { type: Number },
   },
   { versionKey: false }

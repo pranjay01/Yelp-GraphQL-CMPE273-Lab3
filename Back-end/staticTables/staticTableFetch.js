@@ -99,48 +99,54 @@ const uploadCuisineData = async (request, response) => {
 };
 
 // MongoDb Implemented // Fetch maaster static data
-const getSignupMasterData = async (response) => {
-  const results = [];
+const getSignupMasterData = async () => {
+  const results = {};
 
   try {
-    Country.find(await {}, async (error, country) => {
-      if (error) {
-        response.writeHead(500, {
-          'Content-Type': 'text/plain',
-        });
-      } else {
-        results.push(country);
-        State.find(await {}, async (error1, state) => {
-          if (error1) {
-            response.writeHead(500, {
-              'Content-Type': 'text/plain',
-            });
-          } else {
-            await results.push(state);
-            Gender.find(await {}, async (error2, gender) => {
-              if (error2) {
-                response.writeHead(500, {
-                  'Content-Type': 'text/plain',
-                });
-              } else {
-                await results.push(gender);
-                response.writeHead(200, {
-                  'Content-Type': 'application/json',
-                });
-                response.end(JSON.stringify(results));
-              }
-            });
-          }
-        });
-      }
-    });
+    results.Country = await Country.find({});
+    results.State = await State.find({});
+    results.Gender = await Gender.find({});
+    // await Country.find(await {}, async (error, country) => {
+    //   if (error) {
+    //     // response.writeHead(500, {
+    //     //   'Content-Type': 'text/plain',
+    //     // });
+    //   } else {
+    //     results.country = country;
+    //     State.find(await {}, async (error1, state) => {
+    //       if (error1) {
+    //         // response.writeHead(500, {
+    //         //   'Content-Type': 'text/plain',
+    //         // });
+    //       } else {
+    //         // await results.push(state);
+    //         results.state = state;
+    //         Gender.find(await {}, async (error2, gender) => {
+    //           if (error2) {
+    //             // response.writeHead(500, {
+    //             //   'Content-Type': 'text/plain',
+    //             // });
+    //           } else {
+    //             results.gender = gender;
+    //             // await results.push(gender);
+    //             // response.writeHead(200, {
+    //             //   'Content-Type': 'application/json',
+    //             // });
+    //             // response.end(JSON.stringify(results));
+    //           }
+    //         });
+    //       }
+    //     });
+    //   }
+    // });
   } catch (error) {
-    response.writeHead(500, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Master Data Fetch Failed');
+    // response.writeHead(500, {
+    //   'Content-Type': 'text/plain',
+    // });
+    // response.end('Master Data Fetch Failed');
     // return results;
   }
+  console.log(results);
   return results;
 };
 
@@ -169,7 +175,8 @@ const getCusinesForMenu = async (response) => {
 };
 
 // MongoDbImplemented
-const getSearchStrings = async (request, response) => {
+const getSearchStrings = async () => {
+  const results = {};
   try {
     const NameLocation = await Restaurant.aggregate([
       {
@@ -194,27 +201,25 @@ const getSearchStrings = async (request, response) => {
     // const FoodItemsStrings = [];
     const FoodItemsStrings = [...Appetizers, ...Beverages, ...Desserts, ...Salads, ...MainCourses];
 
-    const results = {
-      NameLocation,
-      FoodItemsStrings,
-    };
-
-    response.writeHead(200, {
-      'Content-Type': 'text/plain',
-    });
-    response.end(JSON.stringify(results));
+    results.NameLocation = NameLocation;
+    results.FoodItemsStrings = FoodItemsStrings;
+    // response.writeHead(200, {
+    //   'Content-Type': 'text/plain',
+    // });
+    // response.end(JSON.stringify(results));
   } catch (error) {
-    response.writeHead(401, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Network Error');
+    // response.writeHead(401, {
+    //   'Content-Type': 'text/plain',
+    // });
+    results.Result = 'Network Error';
   }
-  return response;
+  return results;
 };
 
 // get restuarant result on basis of searched string and filter criteria // MongoDbImplemented
-const fetchRestaurantResults = async (req, res) => {
-  const { filter, searchString, selectedPage } = url.parse(req.url, true).query;
+const fetchRestaurantResults = async (args) => {
+  const { filter, searchString, selectedPage } = args;
+  const results = {};
   try {
     let restaurantList = [];
     let restaurantCount = 0;
@@ -223,8 +228,8 @@ const fetchRestaurantResults = async (req, res) => {
         restaurantList = await Restaurant.find({
           Name: { $regex: `${searchString}`, $options: 'i' },
         })
-          .skip(selectedPage * 2)
-          .limit(2)
+          // .skip(selectedPage * 2)
+          // .limit(2)
           .exec();
         restaurantCount = await Restaurant.find({
           Name: { $regex: `${searchString}`, $options: 'i' },
@@ -288,8 +293,8 @@ const fetchRestaurantResults = async (req, res) => {
             ],
           },
         })
-          .skip(selectedPage * 2)
-          .limit(2)
+          // .skip(selectedPage * 2)
+          // .limit(2)
           .exec();
         restaurantCount = await Restaurant.find({
           RestaurantID: {
@@ -361,8 +366,8 @@ const fetchRestaurantResults = async (req, res) => {
             ],
           },
         })
-          .skip(selectedPage * 2)
-          .limit(2)
+          // .skip(selectedPage * 2)
+          // .limit(2)
           .exec();
         restaurantCount = await Restaurant.find({
           RestaurantID: {
@@ -396,9 +401,9 @@ const fetchRestaurantResults = async (req, res) => {
               },
             },
           },
-        ])
-          .skip(selectedPage * 2)
-          .limit(2);
+        ]);
+        // .skip(selectedPage * 2)
+        // .limit(2);
         restaurantCount = await Restaurant.aggregate([
           {
             $addFields: {
@@ -424,24 +429,23 @@ const fetchRestaurantResults = async (req, res) => {
       }
     }
 
-    const results = {
-      restaurantList,
-      restaurantCount,
-    };
-    res.writeHead(200, {
-      'Content-Type': 'text/plain',
-    });
-    res.end(JSON.stringify(results));
+    results.restaurantList = restaurantList;
+    results.restaurantCount = restaurantCount;
+    // res.writeHead(200, {
+    //   'Content-Type': 'text/plain',
+    // });
+    // res.end(JSON.stringify(results));
   } catch (error) {
-    res.writeHead(401, {
-      'Content-Type': 'text/plain',
-    });
-    res.end('Network Error');
+    // res.writeHead(401, {
+    //   'Content-Type': 'text/plain',
+    // });
+    results.Result = 'Network Error';
   }
-  return res;
+  return results;
 };
 
 // get restuarant result on basis of searched string and filter criteria //mongodb Implemented
+// fetch from get restaurant query
 const fetchRestaurantProfileForCustomer = async (req, res) => {
   const { restroId } = url.parse(req.url, true).query;
   try {

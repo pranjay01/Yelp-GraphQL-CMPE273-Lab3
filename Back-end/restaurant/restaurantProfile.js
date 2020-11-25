@@ -1,3 +1,5 @@
+/* eslint-disable no-unreachable */
+/* eslint-disable no-else-return */
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable no-console */
 
@@ -14,8 +16,8 @@ const mysqlConnection = require('../mysqlConnection');
 const UserSignup = require('../Models/UserSignup');
 
 const Restaurant = require('../Models/Restaurant');
-const Reviews = require('../Models/Review');
-const Event = require('../Models/Event');
+// const Reviews = require('../Models/Review');
+// const Event = require('../Models/Event');
 
 const Orders = require('../Models/Order');
 
@@ -54,140 +56,90 @@ const multipleUpload = multer({
 }).single('file');
 
 // Function to create new restaurant // mongoDbAdded
-const signup = async (restaurant, response) => {
+const signup = async (restaurant) => {
+  const results = {};
   try {
-    UserSignup.findOne({ Email: restaurant.Email, Role: 'Restaurant' }, async (error, user) => {
-      if (error) {
-        response.writeHead(500, {
-          'Content-Type': 'text/plain',
-        });
-        response.end('Network Error');
-      } else if (user) {
-        response.writeHead(400, {
-          'Content-Type': 'text/plain',
-        });
-        response.end('Email Already Exists');
-      } else {
-        let Location = restaurant.Street.concat(', ');
-        Location = Location.concat(restaurant.Zip);
-        geo.find(Location, async function (err1, res) {
-          if (await res) {
-            const latitude = res[0].location.lat;
-            const longitude = res[0].location.lng;
-            const hashedPassword = await bcrypt.hash(restaurant.Password, 10);
-            const newUser = new UserSignup({
-              ...restaurant,
-              Role: 'Restaurant',
-              Password: hashedPassword,
-            });
-            //  newUser = { ...newUser, Password: hashedPassword };
-            newUser.save((err, data) => {
-              if (err) {
-                response.writeHead(500, {
-                  'Content-Type': 'text/plain',
-                });
-                response.end('Network Error');
-              } else {
-                const newRestaurant = new Restaurant({
-                  ...restaurant,
-                  RestaurantID: data._id,
-                  Latitude: latitude,
-                  Longitude: longitude,
-                });
-                newRestaurant.save((err2) => {
-                  if (err2) {
-                    response.writeHead(500, {
-                      'Content-Type': 'text/plain',
-                    });
-                    response.end('Network Error');
-                  } else {
-                    response.writeHead(201, {
-                      'Content-Type': 'text/plain',
-                    });
-                    response.end('User Created');
-                  }
-                });
-              }
-            });
-            if (err1) {
-              response.writeHead(500, {
-                'Content-Type': 'text/plain',
-              });
-              response.end('Incorrect Location');
-            }
-          } else {
-            response.writeHead(500, {
-              'Content-Type': 'text/plain',
-            });
-            response.end('Incorrect Location');
-          }
-        });
+    const user = await UserSignup.findOne({ Email: restaurant.Email, Role: 'Restaurant' }).exec();
+    if (user) {
+      results.Result = 'Email Already Exists';
+    } else {
+      const hashedPassword = await bcrypt.hash(restaurant.Password, 10);
+      const newUser = new UserSignup({
+        ...restaurant,
+        Role: 'Restaurant',
+        Password: hashedPassword,
+      });
+      const usernew = await newUser.save();
+      // let Location = restaurant.Street.concat(', ');
+      // Location = Location.concat(restaurant.Zip);
+      // const loc = await geo.find(Location);
+      const newRestaurant = new Restaurant({
+        ...restaurant,
+        RestaurantID: usernew._id,
+        // Latitude: loc[0].location.lat,
+        // Longitude: loc[0].location.lng,
+      });
+      const res = await newRestaurant.save();
+      if (res) {
+        results.Result = 'Restaurant Created';
       }
-    });
+    }
   } catch (e) {
-    response.writeHead(500, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Network error');
+    // response.writeHead(500, {
+    //   'Content-Type': 'text/plain',
+    // });
+    results.Result = 'Network Error';
   }
-  return response;
+  return results;
 };
 
 // Get Complete Restaurant, // mongoDbAdded
-const getRestaurantInfo = async (request, response) => {
-  try {
-    const { _id } = url.parse(request.url, true).query;
+// const getRestaurantInfo = async (RestaurantID) => {
+//   let results = {};
+//   try {
+//     const restaurant = await Restaurant.findOne({ RestaurantID }).exec();
 
-    const restaurant = await Restaurant.findOne({ RestaurantID: _id }).exec();
-
-    const reviewCount = await Reviews.find({ RestaurantID: _id }).countDocuments();
-    const results = {
-      restaurant,
-      reviewCount,
-    };
-
-    response.writeHead(200, {
-      'Content-Type': 'application/json',
-    });
-    response.end(JSON.stringify(results));
-  } catch (error) {
-    response.writeHead(401, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Network Error');
-  }
-  return response;
-};
+//     // const reviewCount = await Reviews.find({ RestaurantID }).countDocuments();
+//     results = restaurant;
+//   } catch (error) {
+//     results.ErrorResult = 'Networ Error';
+//   }
+//   return results;
+// };
 
 // Update Restaurant Profile // mongoDbAdded
-const updateRestaurantProfile = async (restaurant, response) => {
+const updateRestaurantProfile = async (restaurant) => {
+  const results = {};
   try {
-    Restaurant.updateOne(
-      { RestaurantID: restaurant.RestaurantID },
-      { ...restaurant },
-      async (error) => {
-        if (error) {
-          response.writeHead(500, {
-            'Content-Type': 'text/plain',
-          });
-          response.end('Network Error');
-        } else {
-          response.writeHead(200, {
-            'Content-Type': 'text/plain',
-          });
-          response.end('Profile Updated Successfully');
-        }
-      }
-    );
+    await Restaurant.updateOne({ RestaurantID: restaurant.RestaurantID }, { ...restaurant });
+    results.Result = 'Profile Updated Successfully';
+    // Restaurant.updateOne(
+    //   { RestaurantID: restaurant.RestaurantID },
+    //   { ...restaurant },
+    //   async (error) => {
+    //     if (error) {
+    //       // response.writeHead(500, {
+    //       //   'Content-Type': 'text/plain',
+    //       // });
+    //       results.Result = 'Network Error';
+    //     } else {
+    //       // response.writeHead(200, {
+    //       //   'Content-Type': 'text/plain',
+    //       // });
+    //       results.Result = 'Profile Updated Successfully';
+    //     }
+    //   }
+    // );
   } catch (error) {
-    response.writeHead(401, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Network Error');
+    // response.writeHead(401, {
+    //   'Content-Type': 'text/plain',
+    // });
+    results.Result = 'Network Error';
   }
-  return response;
+  return results;
 };
 
+/*
 // upload restaurant profile to s3 bucket // mongoDbAdded
 const uploadRestaurantProfilePic = async (req, res) => {
   try {
@@ -252,7 +204,9 @@ const uploadPicToMulter = async (req, res) => {
   return res;
 };
 
+*/
 // MongoDb Implemented
+/*
 const fetchMenu = async (request, response) => {
   const { RestaurantID, selectedPage, category } = url.parse(request.url, true).query;
   try {
@@ -301,8 +255,9 @@ const fetchMenu = async (request, response) => {
   }
   return response;
 };
-
+*/
 // MongoDb Implemented
+/*
 const uploadFoodImage = async (req, res) => {
   try {
     multipleUpload(req, res, function (err) {
@@ -328,67 +283,61 @@ const uploadFoodImage = async (req, res) => {
   return res;
 };
 
+*/
 // MongoDb Implemented
-const insertFood = async (request, response) => {
+const insertFood = async (food) => {
+  const results = {};
   try {
     let newFood = null;
-    switch (request.body.category) {
+    switch (food.Category) {
       case 'APPETIZERS':
         newFood = new Appetizer({
-          ...request.body,
+          ...food,
         });
         break;
       case 'SALADS':
         newFood = new Salad({
-          ...request.body,
+          ...food,
         });
         break;
       case 'MAIN_COURSE':
         newFood = new MainCourse({
-          ...request.body,
+          ...food,
         });
         break;
       case 'BEVERAGES':
         newFood = new Beverage({
-          ...request.body,
+          ...food,
         });
         break;
       case 'DESSERTS':
         newFood = new Dessert({
-          ...request.body,
+          ...food,
         });
         break;
       default:
         break;
     }
-    newFood.save((err) => {
-      if (err) {
-        response.writeHead(500, {
-          'Content-Type': 'text/plain',
-        });
-        response.end('Network Error');
-      } else {
-        response.writeHead(200, {
-          'Content-Type': 'application/json',
-        });
-        response.end('Food Item Created Successfully!!!');
-      }
-    });
+    const nfood = await newFood.save();
+    if (nfood) {
+      results.Result = 'Food Item Created Successfully!!!';
+    }
   } catch (error) {
-    response.writeHead(500, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Network Error');
+    // response.writeHead(500, {
+    //   'Content-Type': 'text/plain',
+    // });
+    results.Result = 'Network Error';
   }
-  return response;
+  return results;
 };
 
 // MongoDb Implemented
-const deleteFoodItem = async (request, response) => {
-  const { _id } = request.body;
+const deleteFoodItem = async (food) => {
+  const { _id } = food;
+  const results = {};
   try {
     let FoodCategory = null;
-    switch (request.body.category) {
+    switch (food.Category) {
       case 'APPETIZERS':
         FoodCategory = Appetizer;
         break;
@@ -407,33 +356,34 @@ const deleteFoodItem = async (request, response) => {
       default:
         break;
     }
-    FoodCategory.findByIdAndDelete({ _id }, (error) => {
+    await FoodCategory.findByIdAndDelete({ _id }, (error) => {
       if (error) {
-        response.writeHead(500, {
-          'Content-Type': 'text/plain',
-        });
-        response.end(error.message);
+        // response.writeHead(500, {
+        //   'Content-Type': 'text/plain',
+        // });
+        results.Result = error.message;
       } else {
-        response.writeHead(200, {
-          'Content-Type': 'text/plain',
-        });
-        response.end('Delete Successfull!!!');
+        // response.writeHead(200, {
+        //   'Content-Type': 'text/plain',
+        // });
+        results.Result = 'Delete Successfull!!!';
       }
     });
   } catch (error) {
-    response.writeHead(500, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Network Error');
+    // response.writeHead(500, {
+    //   'Content-Type': 'text/plain',
+    // });
+    results.Result = 'Network Error';
   }
-  return response;
+  return results;
 };
 
 // Update FoodItem // MongoDb Implemented
-const updateFoodItem = async (request, response) => {
+const updateFoodItem = async (food) => {
+  const results = {};
   try {
     let FoodCategory = null;
-    switch (request.body.category) {
+    switch (food.Category) {
       case 'APPETIZERS':
         FoodCategory = Appetizer;
         break;
@@ -452,30 +402,31 @@ const updateFoodItem = async (request, response) => {
       default:
         break;
     }
-    FoodCategory.updateOne({ _id: request.body._id }, { ...request.body }, async (error) => {
+    await FoodCategory.updateOne({ _id: food._id }, { ...food }, async (error) => {
       if (error) {
-        response.writeHead(500, {
-          'Content-Type': 'text/plain',
-        });
-        response.end('Network Error');
+        // response.writeHead(500, {
+        //   'Content-Type': 'text/plain',
+        // });
+        results.Result = 'Network Error';
       } else {
         // console.log(data);
-        response.writeHead(200, {
-          'Content-Type': 'text/plain',
-        });
-        response.end('Food Item Updated Successfully');
+        // response.writeHead(200, {
+        //   'Content-Type': 'text/plain',
+        // });
+        results.Result = 'Food Item Updated Successfully';
       }
     });
   } catch (error) {
-    response.writeHead(401, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Network Error');
+    // response.writeHead(401, {
+    //   'Content-Type': 'text/plain',
+    // });
+    results.Result = 'Network Error';
   }
-  return response;
+  return results;
 };
 
 // fetch Reviews // MongoDb Implemented
+/*
 const fetchReviews = async (request, response) => {
   const { RestaurantID, selectedPage } = url.parse(request.url, true).query;
   try {
@@ -501,10 +452,12 @@ const fetchReviews = async (request, response) => {
   }
   return response;
 };
-
+*/
 // fetch order depending on filter value // MongoDb Implemented
-const getOrderDetails = async (request, response) => {
-  const { RestaurantID, selectedPage, sortValue } = url.parse(request.url, true).query;
+
+const getOrderDetails = async (args) => {
+  const { RestaurantID, selectedPage, sortValue } = args;
+  let result = {};
   try {
     let filterArray = [];
     switch (sortValue) {
@@ -533,155 +486,60 @@ const getOrderDetails = async (request, response) => {
         ];
         break;
     }
-    const OrderList = await Orders.find({ $and: [{ RestaurantID }, { $or: filterArray }] })
-      .limit(3)
-      .skip(selectedPage * 3)
+    result = await Orders.find({ $and: [{ RestaurantID }, { $or: filterArray }] })
+      // .limit(3)
+      // .skip(selectedPage * 3)
       .exec();
-    const orderCount = await Orders.find({
-      $and: [{ RestaurantID }, { $or: filterArray }],
-    }).countDocuments();
-    const results = {
-      OrderList,
-      orderCount,
-    };
+    // const orderCount = await Orders.find({
+    //   $and: [{ RestaurantID }, { $or: filterArray }],
+    // }).countDocuments();
+    // const results = {
+    //   OrderList,
+    //   orderCount,
+    // };
 
-    response.writeHead(200, {
-      'Content-Type': 'application/json',
-    });
-    response.end(JSON.stringify(results));
+    // response.writeHead(200, {
+    //   'Content-Type': 'application/json',
+    // });
+    // response.end(JSON.stringify(results));
   } catch (error) {
-    response.writeHead(500, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Review Fetch Failed');
+    // response.writeHead(500, {
+    //   'Content-Type': 'text/plain',
+    // });
+    result.Result = 'Review Fetch Failed';
   }
-  return response;
+  return result;
 };
 
 // Update Deliver Status // MongoDb Implemented
-const updateDeliveryStatus = async (request, response) => {
+const updateDeliveryStatus = async (order) => {
+  const results = {};
   try {
-    Orders.updateOne(
-      { $and: [{ _id: request.body._id }, { RestaurantID: request.body.RestaurantID }] },
-      { ...request.body },
+    await Orders.updateOne(
+      { $and: [{ _id: order._id }, { RestaurantID: order.RestaurantID }] },
+      { ...order },
       async (error) => {
         if (error) {
-          response.writeHead(500, {
-            'Content-Type': 'text/plain',
-          });
-          response.end('Network Error');
+          // response.writeHead(500, {
+          //   'Content-Type': 'text/plain',
+          // });
+          results.Result = 'Network Error';
         } else {
           // console.log(data);
-          response.writeHead(200, {
-            'Content-Type': 'text/plain',
-          });
-          response.end('Order statuse succesfully updated to', request.body.DeliveryStatus);
+          // response.writeHead(200, {
+          //   'Content-Type': 'text/plain',
+          // });
+          results.Result = ('Order statuse succesfully updated to', order.DeliveryStatus);
         }
       }
     );
   } catch (error) {
-    response.writeHead(401, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Network Error');
+    // response.writeHead(401, {
+    //   'Content-Type': 'text/plain',
+    // });
+    results.Result = 'Network Error';
   }
-  return response;
-};
-
-// Create New Event // MongoDb Implemented
-const createNewEvent = async (request, response) => {
-  try {
-    const newEvent = new Event({
-      ...request.body,
-    });
-
-    newEvent.save((err) => {
-      if (err) {
-        response.writeHead(500, {
-          'Content-Type': 'text/plain',
-        });
-        response.end('Network Error');
-      } else {
-        response.writeHead(201, {
-          'Content-Type': 'application/json',
-        });
-        response.end('Food Item Created Successfully!!!');
-      }
-    });
-  } catch (error) {
-    response.writeHead(500, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Network Error');
-  }
-  return response;
-};
-
-// fetch events fased on filter // MongoDb Implemented
-const getEventList = async (request, response) => {
-  const { RestaurantID, selectedPage, sortValue } = url.parse(request.url, true).query;
-  try {
-    let filter = {};
-    if (sortValue === 'upcoming') {
-      filter = { $gte: new Date() };
-    } else {
-      filter = { $lt: new Date() };
-    }
-    const EventList = await Event.find(
-      { $and: [{ RestaurantID }, { EventDate: filter }] },
-      { RegisteredCustomers: 0 }
-      // { RegisteredCustomers: { $slice: [selectedPageRegisteredCustomers * 2, 2] } }
-    )
-      .limit(3)
-      .skip(selectedPage * 3)
-      .exec();
-    const eventCount = await Event.find({
-      $and: [{ RestaurantID }, { EventDate: filter }],
-    }).countDocuments();
-    const results = {
-      EventList,
-      eventCount,
-    };
-
-    response.writeHead(200, {
-      'Content-Type': 'application/json',
-    });
-    response.end(JSON.stringify(results));
-  } catch (error) {
-    response.writeHead(500, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Review Fetch Failed');
-  }
-  return response;
-};
-
-// fetch events fased on filter // MongoDb Implemented
-const getCustomerList = async (request, response) => {
-  const { RestaurantID, _id, RegistrationPage } = url.parse(request.url, true).query;
-  try {
-    const focusedEvent = await Event.findOne(
-      { $and: [{ RestaurantID }, { _id }] },
-      { RegisteredCustomers: { $slice: [RegistrationPage * 8, 8] } }
-    );
-
-    const registeredCustomerArray = await Event.findOne({ $and: [{ RestaurantID }, { _id }] });
-    const results = {
-      RegisteredCustomers: focusedEvent.RegisteredCustomers,
-      registeredCustomerCount: registeredCustomerArray.RegisteredCustomers.length,
-    };
-
-    response.writeHead(200, {
-      'Content-Type': 'application/json',
-    });
-    response.end(JSON.stringify(results));
-  } catch (error) {
-    response.writeHead(500, {
-      'Content-Type': 'text/plain',
-    });
-    response.end('Review Fetch Failed');
-  }
-  return response;
+  return results;
 };
 
 // Get Contact Information
@@ -710,20 +568,17 @@ const getCustomerCompleteProfileForRestaurant = async (request, response) => {
 
 module.exports = {
   signup,
-  getRestaurantInfo,
+  // getRestaurantInfo,
   updateRestaurantProfile,
-  fetchMenu,
+  // fetchMenu,
   insertFood,
   deleteFoodItem,
   updateFoodItem,
-  fetchReviews,
+  // fetchReviews,
   getOrderDetails,
   updateDeliveryStatus,
-  createNewEvent,
-  getEventList,
-  getCustomerList,
-  uploadRestaurantProfilePic,
-  uploadPicToMulter,
-  uploadFoodImage,
+  // uploadRestaurantProfilePic,
+  // uploadPicToMulter,
+  // uploadFoodImage,
   getCustomerCompleteProfileForRestaurant,
 };

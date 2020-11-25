@@ -7,7 +7,7 @@ const orderSchema = new Schema(
     CustomerID: { type: String, required: true },
     Address: { type: String },
     CustomerName: { type: String, required: true },
-    CustomerImageUrl: { type: String, required: true },
+    CustomerImageUrl: { type: String },
     RestaurantID: { type: String, required: true },
     RestaurantName: { type: String, required: true },
     OrderedDate: { type: Date, required: true },
@@ -27,14 +27,14 @@ const orderSchema = new Schema(
     },
     DeliverStatusID: { type: Number, default: 1 },
     Bill: { type: Number, required: true },
-    OrderCart: [
-      {
-        FoodName: { type: String },
-        MenuCategory: { type: String },
-        Quantity: { type: Number },
-        Price: { type: Number },
-      },
-    ],
+    // OrderCart: [
+    //   {
+    //     FoodName: { type: String },
+    //     MenuCategory: { type: String },
+    //     Quantity: { type: Number },
+    //     Price: { type: Number },
+    //   },
+    // ],
   },
   { versionKey: false }
 );
