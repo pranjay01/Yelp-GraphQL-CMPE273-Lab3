@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
-import axios from 'axios';
-import serverUrl from '../../../../config';
+
 class WriteAReview extends Component {
   constructor(props) {
     super(props);
@@ -34,12 +33,12 @@ class WriteAReview extends Component {
           >
             <ul>
               <li>
-                <label for="review">Share your Experience</label>
-                <span class="help-block">Max Characters 1000</span>
+                <label htmlFor="review">Share your Experience</label>
+                <span className="help-block">Max Characters 1000</span>
                 <textarea
                   style={{ marginLeft: '25px', width: '50%' }}
                   id="review"
-                  maxlength="1000"
+                  maxLength="1000"
                   name="review"
                   size="30"
                   type="text"
@@ -48,7 +47,7 @@ class WriteAReview extends Component {
                 ></textarea>
               </li>
               <li>
-                <label for="rating">Rating</label>
+                <label htmlFor="rating">Rating</label>
                 <select
                   style={{ marginLeft: '25px', width: '10%' }}
                   placeholder="Gender"
@@ -78,7 +77,7 @@ class WriteAReview extends Component {
             <button
               type="submit"
               value="submit"
-              class="ybtn ybtn--primary ybtn-full-responsive-small"
+              className="ybtn ybtn--primary ybtn-full-responsive-small"
             >
               <span>Submit Review</span>
             </button>

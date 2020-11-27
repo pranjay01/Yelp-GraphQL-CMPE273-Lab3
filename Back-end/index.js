@@ -13,6 +13,7 @@ const cookieParser = require('cookie-parser');
 
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const cors = require('cors');
 const schema = require('./schema/schema');
 const config = require('./config');
 
@@ -25,6 +26,7 @@ const config = require('./config');
 // const staticTabbles = require('./routes/staticTableRoutes');
 
 const app = express();
+app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 app.use(
   session({
     secret: process.env.SESSION_SECRET,

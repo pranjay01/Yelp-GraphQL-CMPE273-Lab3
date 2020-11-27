@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
-import cookie from 'react-cookies';
 import { Redirect } from 'react-router';
 import axios from 'axios';
 import serverUrl from '../../../config';
@@ -22,6 +21,7 @@ class Home extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      openRestaurantList: false,
       SearchFilters: [
         { ID: 1, Value: 'Restaurant Name' },
         { ID: 2, Value: 'Food Items' },
@@ -32,6 +32,7 @@ class Home extends Component {
   }
 
   componentDidMount() {
+    localStorage.setItem('restaurantPageID', '');
     axios
       .get(
         serverUrl + 'static/getSearchStrings',
@@ -39,25 +40,24 @@ class Home extends Component {
         { withCredentials: true }
       )
       .then((response) => {
-        let RestaurantNameStrings = response.data[0].map((strings) => {
-          return strings.Name;
+        let RestaurantNameStrings = response.data.NameLocation.map((restro) => {
+          return restro.Name;
         });
-        let FoodItemsStrings = response.data[1].map((strings) => {
-          return strings.Name;
-        });
-        let CuisinesStrings = response.data[2].map((strings) => {
-          return strings.Name;
-        });
-        let LocationStrings = response.data[3].map((strings) => {
-          return strings.Name;
+        let LocationStrings = response.data.NameLocation.map((restro) => {
+          return restro.location;
         });
 
-        console.log(response.data);
+        let FoodItemsStrings = response.data.FoodItemsStrings.map((food) => {
+          return food.FoodName;
+        });
+        let CuisinesStrings = response.data.FoodItemsStrings.map((food) => {
+          return food.Cuisine;
+        });
         let payload = {
-          RestaurantNameStrings,
-          FoodItemsStrings,
-          CuisinesStrings,
-          LocationStrings,
+          RestaurantNameStrings: Array.from(new Set(RestaurantNameStrings)),
+          FoodItemsStrings: Array.from(new Set(FoodItemsStrings)),
+          CuisinesStrings: Array.from(new Set(CuisinesStrings)),
+          LocationStrings: Array.from(new Set(LocationStrings)),
         };
         this.props.updateSeprateStrings(payload);
       });
@@ -106,27 +106,39 @@ class Home extends Component {
 
   openRestroListPage = (string) => {
     localStorage.setItem('SearchedString', string);
-    console.log(string);
-    const payload = { serchedString: string };
-    this.props.updateSearchedString(payload);
-    history.push('/RestaurantList');
-    window.location.reload(false);
+    // console.log(string);
+    // const payload = { serchedString: '' };
+    // this.props.updateSearchedString(payload);
+    this.setState({
+      openRestaurantList: true,
+    });
+
+    // window.location.reload(false);
   };
 
   getRestaurants = (event) => {
-    history.push('/RestaurantList');
+    this.setState({
+      openRestaurantList: true,
+    });
   };
 
   render() {
     let redirectVar = null;
     // let block = null;
-    if (!cookie.load('cookie')) {
-      console.log('cookie not found');
-      redirectVar = null;
-    } else {
-      if (cookie.load('userrole') === 'Customer') {
+    if (!localStorage.getItem('token')) {
+      if (this.state.openRestaurantList) {
+        redirectVar = <Redirect to="/RestaurantList" />;
+      } else {
         redirectVar = null;
-      } else if (cookie.load('userrole') === 'Restaurant') {
+      }
+    } else {
+      if (localStorage.getItem('userrole') === 'Customer') {
+        if (this.state.openRestaurantList) {
+          redirectVar = <Redirect to="/RestaurantList" />;
+        } else {
+          redirectVar = null;
+        }
+      } else if (localStorage.getItem('userrole') === 'Restaurant') {
         redirectVar = <Redirect to="/restaurantHome" />;
       } else {
         redirectVar = <Redirect to="/customerLogin" />;
@@ -182,7 +194,7 @@ class Home extends Component {
                   </div>
                 </div>
 
-                {cookie.load('cookie') ? <MenuBlock /> : <LoginBlock />}
+                {localStorage.getItem('token') ? <MenuBlock /> : <LoginBlock />}
               </div>
             </div>
             <div className="homepage-hero_inner">
@@ -204,7 +216,7 @@ class Home extends Component {
                     <div className="main-search_suggestions-field search-field-container find-decorator">
                       <label
                         className="pseudo-input business-search-form_input business-search-form_input--find"
-                        for="find_desc"
+                        htmlFor="find_desc"
                       >
                         <div className="pseudo-input_wrapper">
                           <span className="pseudo-input_text business-search-form_input-text">
@@ -216,7 +228,7 @@ class Home extends Component {
                           >
                             <input
                               disabled
-                              autocomplete="off"
+                              autoComplete="off"
                               style={{
                                 position: 'absolute',
                                 color: 'rgb(200, 200, 200)',
@@ -242,9 +254,9 @@ class Home extends Component {
                             <input
                               disabled={this.props.searchTabInfo.selectedFilter === '-Select-'}
                               onChange={this.onChangeStringSearchHanler}
-                              autocomplete="off"
+                              autoComplete="off"
                               id="find_desc"
-                              maxlength="64"
+                              maxLength="64"
                               placeholder="restaurant"
                               value={this.props.searchTabInfo.serchedString}
                               className="pseudo-input_field business-search-form_input-field"
@@ -256,7 +268,7 @@ class Home extends Component {
                                 boxSizing: 'border-box',
                               }}
                             />
-                            <input type="hidden" maxlength="64" name="find_desc" value="" />
+                            <input type="hidden" maxLength="64" name="find_desc" value="" />
                           </span>
                         </div>
                       </label>
@@ -322,14 +334,14 @@ class Home extends Component {
                                   ))}
                                 </select>
                                 {/* <input
-                                  maxlength="80"
+                                  maxLength="80"
                                   placeholder="address, neighborhood, city, state or zip"
                                   vale=""
                                   className="pseudo-input_field business-search-form_input-field"
                                 />
                                 <input
                                   type="hidden"
-                                  maxlength="80"
+                                  maxLength="80"
                                   name="find_loc"
                                   value="Willow Glen, San Jose, CA"
                                ></input>*/}

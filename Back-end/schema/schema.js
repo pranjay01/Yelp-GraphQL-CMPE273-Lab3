@@ -45,6 +45,8 @@ const {
   getAllOrders,
 } = require('../customer/customerProfile');
 
+const { login } = require('../common/loginLogout');
+
 const {
   GraphQLObjectType,
   GraphQLInputObjectType,
@@ -83,6 +85,9 @@ const UserSignupType = new GraphQLObjectType({
       resolve(parent, args) {
         return customer.findOne({ CustomerID: parent._id }).exec();
       },
+    },
+    Result: {
+      type: GraphQLString,
     },
   }),
 });
@@ -1231,6 +1236,40 @@ const Mutation = new GraphQLObjectType({
         return submitReview(args);
       },
     },
+
+    loginUser: {
+      type: UserSignupType,
+      args: {
+        Email: {
+          type: GraphQLString,
+        },
+        Password: {
+          type: GraphQLString,
+        },
+        Role: {
+          type: GraphQLString,
+        },
+      },
+      resolve(parent, args) {
+        // restaurant.updateOne({ RestaurantID: args.RestaurantID }, { ...args });
+        return login(args);
+      },
+    },
+
+    // signupMasterData: {
+    //   type: StaticType,
+    //   args: {
+    //     id: {
+    //       type: GraphQLString,
+    //     },
+    //   },
+    //   resolve(parent, args) {
+    //     console.log('get static data');
+    //     // return country.find();
+    //     const result = getSignupMasterData();
+    //     return result;
+    //   },
+    // },
   },
 });
 

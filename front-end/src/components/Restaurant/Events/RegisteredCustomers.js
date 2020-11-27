@@ -2,69 +2,143 @@ import React, { Component } from 'react';
 import axios from 'axios';
 import serverUrl from '../../../config';
 import CustomerStaticProfile from '../CommonComponent/CustomerStaticProfile';
+import { connect } from 'react-redux';
+import {
+  updateCustomerForRestaurant,
+  updateMessageStore,
+  updatemessageBoxStore,
+} from '../../../constants/action-types';
+import ReactPaginate from 'react-paginate';
+
 import './RegisteredCustomers.css';
+import MessageBodyModal from '../../CommonComponents/MessageBodyModal';
 
 class RegisteredCustomers extends Component {
   constructor(props) {
     super(props);
-    this.state = {
-      staticProfileSeen: false,
-      customerProfile: {
-        Name: '',
-        NickName: '',
-        DOB: '',
-        Address1: '',
-        Address2: '',
-        Headline: '',
-        ILove: '',
-        FMI: '',
-        JoinDate: '',
-        Website: '',
-        ImageUrl: '',
-      },
-    };
+    this.state = {};
   }
-  openStaticProfile = (event, cusID) => {
-    if (this.state.staticProfileSeen) {
-      this.setState({
-        staticProfileSeen: !this.state.staticProfileSeen,
-        //orderDetails: [],
-      });
+  openStaticProfile = (event, CustomerID) => {
+    if (this.props.customerInfo.staticProfileSeen) {
+      let payload = {
+        customerProfile: {},
+        staticProfileSeen: false,
+      };
+      this.props.updateCustomerForRestaurant(payload);
     } else {
       event.preventDefault();
       axios
         .get(
           serverUrl + 'biz/getCustomerCompleteProfile',
 
-          { params: { cusID }, withCredentials: true }
+          { params: { CustomerID }, withCredentials: true }
         )
         .then((response) => {
           console.log(response.data);
-          let customerProfile = {
-            Name: response.data[0][0].Name,
-            NickName: response.data[0][0].NickName,
-            DOB: response.data[0][0].DOB,
-            Address1: response.data[0][0].Address1,
-            Address2: response.data[0][0].Address2,
-            Headline: response.data[0][0].Headline,
-            ILove: response.data[0][0].ILove,
-            FMI: response.data[0][0].FMI,
-            JoinDate: response.data[0][0].JoinDate,
-            Website: response.data[0][0].Website,
-            ImageUrl: response.data[0][0].ImageURL,
+
+          let payload = {
+            customerProfile: response.data.customer,
+            staticProfileSeen: true,
           };
-          this.setState({
-            staticProfileSeen: !this.state.staticProfileSeen,
-            customerProfile,
-          });
+          this.props.updateCustomerForRestaurant(payload);
         });
     }
-
-    //console.log('fetching food details');
   };
   handleClick = () => {
     this.props.toggle();
   };
+  handlePageClick = (e) => {
+    this.props.handlePageClickRegisteredCustomers(e);
+  };
+
+  openMessageWindow = (event, customerID = null) => {
+    event.preventDefault();
+    let msgpayload = {
+      message: '',
+    };
+    this.props.updatemessageBoxStore(msgpayload);
+    if (this.props.messageStore.showMessageModal) {
+      let payload = {
+        Message: { MessageArray: [] },
+        showMessageModal: false,
+      };
+      this.props.updateMessageStore(payload);
+    } else {
+      axios.defaults.headers.common['authorization'] = localStorage.getItem('token');
+      axios
+        .get(
+          serverUrl + 'biz/getMessages',
+
+          {
+            params: {
+              CustomerId: this.props.customerInfo.customerProfile.CustomerID,
+              RestaurantId: localStorage.getItem('userId'),
+            },
+            withCredentials: true,
+          }
+        )
+        .then((response) => {
+          console.log(response.data);
+          let payload = {
+            Message: response.data,
+            showMessageModal: true,
+          };
+          this.props.updateMessageStore(payload);
+        });
+    }
+  };
+
+  sendMessage = (event, message) => {
+    event.preventDefault();
+    console.log('befor data:', this.props.customerInfo.customerProfile);
+    const data = {
+      message: {
+        MessageInstance: message,
+        SentFrom: this.props.restaurantHome.Name,
+        SentTime: new Date(),
+      },
+      CustomerId: this.props.customerInfo.customerProfile.CustomerID,
+      CustomerName:
+        this.props.customerInfo.customerProfile.FirstName +
+        ' ' +
+        this.props.customerInfo.customerProfile.LastName,
+      RestaurantId: this.props.restaurantHome.RestaurantID,
+      RestaurantName: this.props.restaurantHome.Name,
+    };
+    axios.post(serverUrl + 'biz/sendMessage', data).then(
+      (response) => {
+        console.log('Status Code : ', response.status);
+        if (response.status === 200) {
+          console.log(response.data);
+          const msgInstance = {
+            MessageInstance: message,
+            SentFrom: this.props.restaurantHome.Name,
+            SentTime: new Date(),
+          };
+          let NewMessage = null;
+          if (!this.props.messageStore.Message) {
+            NewMessage = response.data;
+          } else {
+            NewMessage = this.props.messageStore.Message;
+
+            NewMessage.MessageArray.unshift(msgInstance);
+          }
+          const payload = {
+            Message: NewMessage,
+          };
+          this.props.updateMessageStore(payload);
+          let msgpayload = {
+            message: '',
+          };
+          this.props.updatemessageBoxStore(msgpayload);
+        }
+      },
+      (error) => {
+        console.log(error);
+      }
+    );
+  };
+
   render() {
     return (
       <div className="modal" style={{ top: '0', left: '0', width: '100%', height: '100%' }}>
@@ -81,23 +155,29 @@ class RegisteredCustomers extends Component {
                 <th>Customer Name</th>
                 <th>Email</th>
               </tr>
-              {this.state.staticProfileSeen ? (
+              {this.props.messageStore.showMessageModal ? (
+                <MessageBodyModal
+                  sendMessage={(event, message) => this.sendMessage(event, message)}
+                  openMessageWindow={(event) => this.openMessageWindow(event, '')}
+                />
+              ) : null}
+              {this.props.customerInfo.staticProfileSeen ? (
                 <CustomerStaticProfile
-                  customerProfile={this.state.customerProfile}
-                  //  modeTop={'10%'}
-                  //  orderDetails={this.state.orderDetails}
+                  openMessageWindow={(event, customerID) =>
+                    this.openMessageWindow(event, customerID)
+                  }
+                  customerProfile={this.props.customerInfo.customerProfile}
                   openStaticProfile={(event) => this.openStaticProfile(event, '')}
                 />
               ) : null}
-              {this.props.RegisteredCustomerList.map((customer) => (
-                <tr>
+              {this.props.registrationStore.RegisteredCustomers.map((customer) => (
+                <tr key={customer.CustomerID}>
                   <td>
                     <a
                       href="#"
-                      //onClick={(event) => this.props.fetchCustomerProfile(event, customer.ID)}
-                      onClick={(event) => this.openStaticProfile(event, customer.ID)}
+                      onClick={(event) => this.openStaticProfile(event, customer.CustomerID)}
                     >
-                      {customer.cusName}
+                      {customer.CustomerName}
                     </a>
                   </td>
                   <td>{customer.Email}</td>
@@ -105,10 +185,67 @@ class RegisteredCustomers extends Component {
               ))}
             </tbody>
           </table>
+          <div style={{ position: 'absolute', left: '4%', bottom: '0%', right: '0' }}>
+            <ReactPaginate
+              previousLabel={'prev'}
+              nextLabel={'next'}
+              breakLabel={'...'}
+              breakClassName={'break-me'}
+              pageCount={this.props.registrationStore.RegistrationPageCount}
+              // pageCount={3}
+              marginPagesDisplayed={2}
+              pageRangeDisplayed={2}
+              onPageChange={this.handlePageClick}
+              containerClassName={'pagination'}
+              subContainerClassName={'pages pagination'}
+              activeClassName={'active'}
+            />
+          </div>
         </div>
       </div>
     );
   }
 }
 
-export default RegisteredCustomers;
+const mapStateToProps = (state) => {
+  const snackbarData = state.snackBarReducer;
+  const { eventStore, registrationStore } = state.eventStoreReducer;
+  const { customerInfo } = state.customerForProfileReducer;
+  const { messageStore } = state.messageStoreReducer;
+  const { restaurantHome } = state.restaurantHomePageReducer;
+
+  return {
+    snackbarData: snackbarData,
+    eventStore,
+    registrationStore,
+    customerInfo,
+    messageStore,
+    restaurantHome,
+  };
+};
+const mapDispatchToProps = (dispatch) => {
+  return {
+    updateCustomerForRestaurant: (payload) => {
+      dispatch({
+        type: updateCustomerForRestaurant,
+        payload,
+      });
+    },
+    updateMessageStore: (payload) => {
+      dispatch({
+        type: updateMessageStore,
+        payload,
+      });
+    },
+    updatemessageBoxStore: (payload) => {
+      dispatch({
+        type: updatemessageBoxStore,
+        payload,
+      });
+    },
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(RegisteredCustomers);
+
+// export default RegisteredCustomers;
