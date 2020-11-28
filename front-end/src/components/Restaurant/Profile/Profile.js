@@ -291,6 +291,7 @@ class Profile extends Component {
       // axios.post(serverUrl + 'biz/updateRestaurantProfile', data)
 
       //make a post request with the user data
+
       this.props.client
         .mutate({
           mutation: updateRestaurant,

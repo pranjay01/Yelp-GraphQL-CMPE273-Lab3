@@ -16,7 +16,7 @@ import MessageList from './MessageTab/MessageList';
 // import '../Login/Login.css';
 import { graphql, Query, withApollo } from 'react-apollo';
 import { flowRight as compose } from 'lodash';
-import { getRestaurantInfo } from '../../queries/BasicProfileFetch';
+import { getRestaurantInfo } from '../../queries/BasicFetch';
 
 class RestaurantHome extends Component {
   constructor(props) {

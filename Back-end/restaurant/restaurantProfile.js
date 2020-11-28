@@ -529,7 +529,7 @@ const updateDeliveryStatus = async (order) => {
           // response.writeHead(200, {
           //   'Content-Type': 'text/plain',
           // });
-          results.Result = ('Order statuse succesfully updated to', order.DeliveryStatus);
+          results.Result = 'Order statuse succesfully updated';
         }
       }
     );

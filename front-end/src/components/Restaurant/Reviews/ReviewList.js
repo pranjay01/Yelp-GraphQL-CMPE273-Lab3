@@ -11,8 +11,12 @@ import {
   updateMessageStore,
   updatemessageBoxStore,
 } from '../../../constants/action-types';
-import ReactPaginate from 'react-paginate';
+// import ReactPaginate from 'react-paginate';
 import MessageBodyModal from '../../CommonComponents/MessageBodyModal';
+import { graphql, Query, withApollo } from 'react-apollo';
+import { flowRight as compose } from 'lodash';
+import { getRestaurantReviews, getCustomerInfo } from '../../../queries/BasicFetch';
+import { updateOrderStatus } from '../../../mutations/FoodMutations';
 
 class ReviewList extends Component {
   constructor(props) {
@@ -26,17 +30,25 @@ class ReviewList extends Component {
 
   fetchReviews(pageNumber) {
     axios.defaults.headers.common['authorization'] = localStorage.getItem('token');
-    axios
-      .get(serverUrl + 'biz/fetchReviews', {
-        params: {
-          selectedPage: pageNumber,
+    // axios
+    //   .get(serverUrl + 'biz/fetchReviews', {
+    //     params: {
+    //       selectedPage: pageNumber,
+    //       RestaurantID: localStorage.getItem('userId'),
+    //     },
+    //     withCredentials: true,
+    //   })
+    this.props.client
+      .query({
+        query: getRestaurantReviews,
+        variables: {
           RestaurantID: localStorage.getItem('userId'),
         },
-        withCredentials: true,
       })
       .then((response) => {
         console.log('Review list Fetched', response.data);
-        let Reviews = response.data.ReviewsList.map((Review) => {
+        let Reviews = response.data.getRestaurantInfo.Review.map((Review) => {
+          console.log('Review.ReviewDate:', Review.ReviewDate);
           return {
             ...Review,
             ReviewDate: new Date(Review.ReviewDate),
@@ -45,8 +57,8 @@ class ReviewList extends Component {
 
         let payload = {
           Reviews,
-          reviewCount: response.data.reviewCount,
-          PageCount: Math.ceil(response.data.reviewCount / 4),
+          // reviewCount: response.data.reviewCount,
+          // PageCount: Math.ceil(response.data.reviewCount / 4),
         };
         this.props.updateReviewList(payload);
       });
@@ -67,24 +79,31 @@ class ReviewList extends Component {
       this.props.updateCustomerForRestaurant(payload);
     } else {
       event.preventDefault();
-      axios
-        .get(
-          serverUrl + 'biz/getCustomerCompleteProfile',
+      // axios
+      //   .get(
+      //     serverUrl + 'biz/getCustomerCompleteProfile',
 
-          { params: { CustomerID }, withCredentials: true }
-        )
+      //     { params: { CustomerID }, withCredentials: true }
+      //   )
+      this.props.client
+        .query({
+          query: getCustomerInfo,
+          variables: {
+            CustomerID,
+          },
+        })
         .then((response) => {
           console.log(response.data);
 
           let payload = {
-            customerProfile: response.data.customer,
+            customerProfile: response.data.getCustomerInfo,
             staticProfileSeen: true,
           };
           this.props.updateCustomerForRestaurant(payload);
         });
     }
   };
-
+  /* 
   openMessageWindow = (event, customerID = null) => {
     event.preventDefault();
     let msgpayload = {
@@ -172,7 +191,7 @@ class ReviewList extends Component {
       }
     );
   };
-
+*/
   render() {
     return (
       <div>
@@ -200,7 +219,7 @@ class ReviewList extends Component {
             />
           ))}
         </ul>
-        <div style={{ position: 'absolute', left: '50%', bottom: '3%', right: '0' }}>
+        {/*<div style={{ position: 'absolute', left: '50%', bottom: '3%', right: '0' }}>
           <ReactPaginate
             previousLabel={'prev'}
             nextLabel={'next'}
@@ -214,7 +233,7 @@ class ReviewList extends Component {
             subContainerClassName={'pages pagination'}
             activeClassName={'active'}
           />
-        </div>
+          </div>*/}
       </div>
     );
   }
@@ -263,6 +282,14 @@ const mapDispatchToProps = (dispatch) => {
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(ReviewList);
+// export default connect(mapStateToProps, mapDispatchToProps)(ReviewList);
 
 // export default ReviewList;
+export default compose(
+  withApollo,
+  // graphql(getRestaurantOrders, { name: 'getRestaurantOrders' }),
+  graphql(getRestaurantReviews, { name: 'getRestaurantReviews' }),
+  graphql(getCustomerInfo, { name: 'getCustomerInfo' }),
+  // graphql(loginUser, { name: 'loginUser' }),
+  connect(mapStateToProps, mapDispatchToProps)
+)(ReviewList);

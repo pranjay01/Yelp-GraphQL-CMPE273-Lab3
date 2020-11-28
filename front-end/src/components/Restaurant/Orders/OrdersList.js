@@ -15,9 +15,13 @@ import {
   updateMessageStore,
   updatemessageBoxStore,
 } from '../../../constants/action-types';
-import ReactPaginate from 'react-paginate';
+// import ReactPaginate from 'react-paginate';
 import MessageBodyModal from '../../CommonComponents/MessageBodyModal';
 import restaurantHomePageReducer from '../../../reducers/restaurantHomePageReducer';
+import { graphql, Query, withApollo } from 'react-apollo';
+import { flowRight as compose } from 'lodash';
+import { getRestaurantOrders, getCustomerInfo } from '../../../queries/BasicFetch';
+import { updateOrderStatus } from '../../../mutations/FoodMutations';
 
 class ordersList extends Component {
   constructor(props) {
@@ -37,21 +41,30 @@ class ordersList extends Component {
 
   commonFetch(sortValue = 'All', selectedPage = 0) {
     axios.defaults.headers.common['authorization'] = localStorage.getItem('token');
-    axios
-      .get(
-        serverUrl + 'biz/getOrderDetails',
+    // axios
+    //   .get(
+    //     serverUrl + 'biz/getOrderDetails',
 
-        {
-          params: { sortValue, RestaurantID: localStorage.getItem('userId'), selectedPage },
-          withCredentials: true,
-        }
-      )
+    //     {
+    //       params: { sortValue, RestaurantID: localStorage.getItem('userId'), selectedPage },
+    //       withCredentials: true,
+    //     }
+    //   )
+    this.props.client
+      .query({
+        query: getRestaurantOrders,
+        variables: {
+          sortValue,
+          RestaurantID: localStorage.getItem('userId'),
+        },
+        fetchPolicy: 'network-only',
+      })
       .then((response) => {
-        console.log(response.data);
-        let OrderList = response.data.OrderList.map((order) => {
+        console.log('response.data.getRestaurantOrders: ', response.data.getRestaurantOrders);
+        let OrderList = response.data.getRestaurantOrders.map((order) => {
           return {
             ...order,
-            OrderedDate: new Date(order.OrderedDate),
+            OrderedDate: new Date(parseInt(order.OrderedDate)),
             tmpStatusValue: order.DeliveryStatus,
             tmpStatusID: order.DeliverStatusID,
           };
@@ -131,30 +144,35 @@ class ordersList extends Component {
       DeliverStatusID: orderItem.tmpStatusID,
     };
 
-    axios.post(serverUrl + 'biz/updateDeliveryStatus', orderItem).then(
-      (response) => {
-        console.log('Status Code : ', response.status);
-        if (response.status === 200) {
-          console.log(response.data);
-          const payload = {
-            success: true,
-            message: response.data,
-          };
-          this.props.updateSnackbarData(payload);
-          let pageNo = this.props.orderStore.selectedPage;
-          if (
-            this.props.orderStore.orderCount % 3 === 1 &&
-            pageNo + 1 === this.props.orderStore.PageCount
-          ) {
-            pageNo -= 1;
+    // axios.post(serverUrl + 'biz/updateDeliveryStatus', orderItem)
+
+    this.props.client
+      .mutate({
+        mutation: updateOrderStatus,
+        variables: {
+          ...orderItem,
+          DeliveryStatus: orderItem.tmpStatusValue,
+          DeliverStatusID: Number(orderItem.tmpStatusID),
+        },
+      })
+      .then(
+        (response) => {
+          console.log('Status Code : ', response.status);
+          if (response.data.updateOrderStatus.Result === 'Order statuse succesfully updated') {
+            console.log(response.data);
+            const payload = {
+              success: true,
+              message: response.data.updateOrderStatus.Result,
+            };
+            this.props.updateSnackbarData(payload);
+
+            this.commonFetch(this.props.orderStore.sortValue, 0);
           }
-          this.commonFetch(this.props.orderStore.sortValue, pageNo);
+        },
+        (error) => {
+          console.log(error);
         }
-      },
-      (error) => {
-        console.log(error);
-      }
-    );
+      );
   };
 
   openStaticProfile = (event, CustomerID) => {
@@ -166,24 +184,31 @@ class ordersList extends Component {
       this.props.updateCustomerForRestaurant(payload);
     } else {
       event.preventDefault();
-      axios
-        .get(
-          serverUrl + 'biz/getCustomerCompleteProfile',
+      // axios
+      //   .get(
+      //     serverUrl + 'biz/getCustomerCompleteProfile',
 
-          { params: { CustomerID }, withCredentials: true }
-        )
+      //     { params: { CustomerID }, withCredentials: true }
+      //   )
+      this.props.client
+        .query({
+          query: getCustomerInfo,
+          variables: {
+            CustomerID,
+          },
+        })
         .then((response) => {
           console.log(response.data);
 
           let payload = {
-            customerProfile: response.data.customer,
+            customerProfile: response.data.getCustomerInfo,
             staticProfileSeen: true,
           };
           this.props.updateCustomerForRestaurant(payload);
         });
     }
   };
-
+  /*
   openMessageWindow = (event, customerID = null) => {
     event.preventDefault();
     let msgpayload = {
@@ -229,7 +254,8 @@ class ordersList extends Component {
         });
     }
   };
-
+*/
+  /*
   sendMessage = (event, message) => {
     event.preventDefault();
     console.log('befor data:', this.props.customerInfo.customerProfile);
@@ -282,7 +308,7 @@ class ordersList extends Component {
       }
     );
   };
-
+*/
   render() {
     return (
       <div>
@@ -353,7 +379,7 @@ class ordersList extends Component {
               />
             ))}
           </ul>
-          <div style={{ position: 'relative', left: '50%', bottom: '3%', right: '0' }}>
+          {/*<div style={{ position: 'relative', left: '50%', bottom: '3%', right: '0' }}>
             <ReactPaginate
               previousLabel={'prev'}
               nextLabel={'next'}
@@ -368,7 +394,7 @@ class ordersList extends Component {
               activeClassName={'active'}
               forcePage={this.props.orderStore.selectedPage}
             />
-          </div>
+            </div>*/}
         </div>
       </div>
     );
@@ -423,6 +449,14 @@ const mapDispatchToProps = (dispatch) => {
     },
   };
 };
-export default connect(mapStateToProps, mapDispatchToProps)(ordersList);
+// export default connect(mapStateToProps, mapDispatchToProps)(ordersList);
 
 // export default ordersList;
+export default compose(
+  withApollo,
+  graphql(getRestaurantOrders, { name: 'getRestaurantOrders' }),
+  graphql(updateOrderStatus, { name: 'updateOrderStatus' }),
+  graphql(getCustomerInfo, { name: 'getCustomerInfo' }),
+  // graphql(loginUser, { name: 'loginUser' }),
+  connect(mapStateToProps, mapDispatchToProps)
+)(ordersList);

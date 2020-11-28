@@ -106,39 +106,7 @@ const getSignupMasterData = async () => {
     results.Country = await Country.find({});
     results.State = await State.find({});
     results.Gender = await Gender.find({});
-    // await Country.find(await {}, async (error, country) => {
-    //   if (error) {
-    //     // response.writeHead(500, {
-    //     //   'Content-Type': 'text/plain',
-    //     // });
-    //   } else {
-    //     results.country = country;
-    //     State.find(await {}, async (error1, state) => {
-    //       if (error1) {
-    //         // response.writeHead(500, {
-    //         //   'Content-Type': 'text/plain',
-    //         // });
-    //       } else {
-    //         // await results.push(state);
-    //         results.state = state;
-    //         Gender.find(await {}, async (error2, gender) => {
-    //           if (error2) {
-    //             // response.writeHead(500, {
-    //             //   'Content-Type': 'text/plain',
-    //             // });
-    //           } else {
-    //             results.gender = gender;
-    //             // await results.push(gender);
-    //             // response.writeHead(200, {
-    //             //   'Content-Type': 'application/json',
-    //             // });
-    //             // response.end(JSON.stringify(results));
-    //           }
-    //         });
-    //       }
-    //     });
-    //   }
-    // });
+    results.Cuisine = await Cusinie.find({});
   } catch (error) {
     // response.writeHead(500, {
     //   'Content-Type': 'text/plain',

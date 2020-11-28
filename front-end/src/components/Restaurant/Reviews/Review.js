@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-
+import moment from 'moment';
 class Review extends Component {
   constructor(props) {
     super(props);
@@ -127,13 +127,19 @@ class Review extends Component {
                     </div>
                   </span>
                 </div>
-                <div className="lemon--div__373c0__1mboc arrange-unit__373c0__o3tjT arrange-unit-fill__373c0__3Sfw1 border-color--default__373c0__3-ifU">
+                <div
+                  style={{ float: 'left' }}
+                  className="lemon--div__373c0__1mboc arrange-unit__373c0__o3tjT arrange-unit-fill__373c0__3Sfw1 border-color--default__373c0__3-ifU"
+                >
                   <span className="lemon--span__373c0__3997G text__373c0__2Kxyz text-color--mid__373c0__jCeOG text-align--left__373c0__2XGa-">
-                    {new Intl.DateTimeFormat('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: '2-digit',
-                    }).format(this.props.review.ReviewDate)}
+                    {/*this.props.review.ReviewDate && this.props.review.ReviewDate.length > 0
+                      ? new Intl.DateTimeFormat('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: '2-digit',
+                        }).format(this.props.review.ReviewDate)
+                      : ''*/}
+                    {moment(this.props.review.ReviewDate).format('ll')}
                     {/* 8/22/2020*/}
                   </span>
                 </div>

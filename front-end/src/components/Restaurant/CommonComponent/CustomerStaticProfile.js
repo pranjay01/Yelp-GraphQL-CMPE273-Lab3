@@ -9,7 +9,7 @@ class CustomerStaticProfile extends Component {
   render() {
     const defaultImage =
       'https://s3-media0.fl.yelpcdn.com/assets/srv0/yelp_styleguide/bf5ff8a79310/assets/img/default_avatars/user_medium_square.png';
-
+    const dob = new Date(parseInt(this.props.customerProfile.DOB));
     return (
       <div
         className="modal"
@@ -86,7 +86,13 @@ class CustomerStaticProfile extends Component {
                         this.props.customerProfile.DOB.length) > 0 ? (
                         <li>
                           <h4>Date Of Birth</h4>
-                          <p>{this.props.customerProfile.DOB}</p>
+                          <p>
+                            {new Intl.DateTimeFormat('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: '2-digit',
+                            }).format(dob)}
+                          </p>
                         </li>
                       ) : null}
 
@@ -106,20 +112,30 @@ class CustomerStaticProfile extends Component {
                         </li>
                       ) : null}
                       {localStorage.getItem('userrole') === 'Customer' ? (
-                        <li> {this.props.alreadyFollowed?'Following!':
-                          <button
-                            onClick={(event) => this.props.FOllowUser(event)}
-                            data-ui="add-section"
-                            aria-describedby="education_label"
-                            class="_-_-shared-ui-atoms-button-base-___button__button _-_-shared-ui-atoms-button-base-___button__small _-_-shared-ui-atoms-button-secondary-___secondary__default "
-                          >
-                            Follow
-                          </button>}
+                        <li>
+                          {' '}
+                          {this.props.alreadyFollowed ? (
+                            'Following!'
+                          ) : (
+                            <button
+                              onClick={(event) => this.props.FOllowUser(event)}
+                              data-ui="add-section"
+                              aria-describedby="education_label"
+                              class="_-_-shared-ui-atoms-button-base-___button__button _-_-shared-ui-atoms-button-base-___button__small _-_-shared-ui-atoms-button-secondary-___secondary__default "
+                            >
+                              Follow
+                            </button>
+                          )}
                         </li>
                       ) : (
                         <li>
-                            <button
-                              onClick={(event)=>this.props.openMessageWindow(event,this.props.customerProfile.CustomerID)}
+                          <button
+                            onClick={(event) =>
+                              this.props.openMessageWindow(
+                                event,
+                                this.props.customerProfile.CustomerID
+                              )
+                            }
                             data-ui="add-section"
                             aria-describedby="education_label"
                             class="_-_-shared-ui-atoms-button-base-___button__button _-_-shared-ui-atoms-button-base-___button__small _-_-shared-ui-atoms-button-secondary-___secondary__default "

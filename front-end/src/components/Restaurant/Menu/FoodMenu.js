@@ -17,7 +17,19 @@ import {
 } from '../../../constants/action-types';
 // import { updateSnackbarData } from '../../constants/action-types';
 
-import ReactPaginate from 'react-paginate';
+// import ReactPaginate from 'react-paginate';
+
+import { graphql, Query, withApollo } from 'react-apollo';
+import { flowRight as compose } from 'lodash';
+import {
+  getAppetizerMenu,
+  getMainCourseMenu,
+  getDessertMenu,
+  getBeverageMenu,
+  getSaladMenu,
+} from '../../../queries/BasicFetch';
+
+import { insertFood, updateFood, deleteFood } from '../../../mutations/FoodMutations';
 
 class FoodMenu extends Component {
   constructor(props) {
@@ -52,7 +64,7 @@ class FoodMenu extends Component {
 
   // Call On render
   componentDidMount() {
-    if (localStorage.getItem('showFoodCategory')) {
+    /* if (localStorage.getItem('showFoodCategory')) {
       this.showMenuCategory(localStorage.getItem('showFoodCategory'));
     }
     // console.log('inside Signup');
@@ -67,6 +79,7 @@ class FoodMenu extends Component {
       };
       this.props.updateFoodData(payload);
     });
+  */
   }
 
   //Open or close Food Addition FOrm
@@ -123,7 +136,7 @@ class FoodMenu extends Component {
       newFood: { ...this.state.newFood, ...tmp },
     });
   };
-
+  /*
   onChangeFileHandler = (event) => {
     if (event.target.files.length === 1) {
       event.preventDefault();
@@ -159,32 +172,43 @@ class FoodMenu extends Component {
       // });
     }
   };
-
+*/
   onSaveCreateNew = () => {
     const data = {
       ...this.state.newFood,
-      category: this.state.showFoodCategory,
+      Category: this.state.showFoodCategory,
     };
     //set the with credentials to true
+    console.log('this.state.newFood', this.state.newFood);
     axios.defaults.withCredentials = true;
     //make a post request with the user data
-    axios.post(serverUrl + 'biz/insertFood', data).then(
-      (response) => {
-        // console.log('Status Code : ', response.status);
-        if (response.status === 200) {
-          // console.log(response.data);
-          let payload = {
-            success: true,
-            message: response.data,
-          };
-          this.props.updateSnackbarData(payload);
-          this.fetchFoodMenu(this.state.selectedPage, this.state.showFoodCategory);
+    // axios.post(serverUrl + 'biz/insertFood', data)
+
+    this.props.client
+      .mutate({
+        mutation: insertFood,
+        variables: {
+          ...this.state.newFood,
+          Category: this.state.showFoodCategory,
+          Price: Number(this.state.newFood.Price),
+        },
+      })
+      .then(
+        (response) => {
+          console.log('insert food : ', response.data);
+          if (response.data.insertFood.Result === 'Food Item Created Successfully!!!') {
+            let payload = {
+              success: true,
+              message: response.data.insertFood.Result,
+            };
+            this.props.updateSnackbarData(payload);
+            this.fetchFoodMenu(this.state.selectedPage, this.state.showFoodCategory);
+          }
+        },
+        (error) => {
+          // console.log(error);
         }
-      },
-      (error) => {
-        // console.log(error);
-      }
-    );
+      );
     let newFood = {
       RestaurantID: localStorage.getItem('userId'),
       FoodName: '',
@@ -201,25 +225,20 @@ class FoodMenu extends Component {
   };
 
   // Common method to fetch data
-  fetchFoodMenu(pageNumber, menuCategory) {
+  fetchFoodMenu(pageNumber = 0, menuCategory) {
     switch (menuCategory) {
       case APPETIZERS:
-        axios
-          .get(
-            serverUrl + 'biz/menuFetch',
-
-            {
-              params: {
-                selectedPage: pageNumber,
-                category: menuCategory,
-                RestaurantID: localStorage.getItem('userId'),
-              },
-              withCredentials: true,
-            }
-          )
+        this.props.client
+          .query({
+            query: getAppetizerMenu,
+            variables: {
+              RestaurantID: localStorage.getItem('userId'),
+            },
+            fetchPolicy: 'network-only',
+          })
           .then((response) => {
             // console.log(response.data);
-            let Appetizers = response.data.allFoods.map((Appetizer) => {
+            let Appetizers = response.data.getRestaurantInfo.Appetizer.map((Appetizer) => {
               return {
                 ...Appetizer,
               };
@@ -237,22 +256,17 @@ class FoodMenu extends Component {
           });
         break;
       case SALADS:
-        axios
-          .get(
-            serverUrl + 'biz/menuFetch',
-
-            {
-              params: {
-                selectedPage: pageNumber,
-                category: menuCategory,
-                RestaurantID: localStorage.getItem('userId'),
-              },
-              withCredentials: true,
-            }
-          )
+        this.props.client
+          .query({
+            query: getSaladMenu,
+            variables: {
+              RestaurantID: localStorage.getItem('userId'),
+            },
+            fetchPolicy: 'network-only',
+          })
           .then((response) => {
             // console.log(response.data);
-            let Salads = response.data.allFoods.map((Salad) => {
+            let Salads = response.data.getRestaurantInfo.Salad.map((Salad) => {
               return {
                 ...Salad,
               };
@@ -266,22 +280,17 @@ class FoodMenu extends Component {
           });
         break;
       case MAIN_COURSE:
-        axios
-          .get(
-            serverUrl + 'biz/menuFetch',
-
-            {
-              params: {
-                selectedPage: pageNumber,
-                category: menuCategory,
-                RestaurantID: localStorage.getItem('userId'),
-              },
-              withCredentials: true,
-            }
-          )
+        this.props.client
+          .query({
+            query: getMainCourseMenu,
+            variables: {
+              RestaurantID: localStorage.getItem('userId'),
+            },
+            fetchPolicy: 'network-only',
+          })
           .then((response) => {
             // console.log(response.data);
-            let MainCourse = response.data.allFoods.map((MainCours) => {
+            let MainCourse = response.data.getRestaurantInfo.MainCourse.map((MainCours) => {
               return {
                 ...MainCours,
               };
@@ -295,22 +304,30 @@ class FoodMenu extends Component {
           });
         break;
       case BEVERAGES:
-        axios
-          .get(
-            serverUrl + 'biz/menuFetch',
+        // axios
+        //   .get(
+        //     serverUrl + 'biz/menuFetch',
 
-            {
-              params: {
-                selectedPage: pageNumber,
-                category: menuCategory,
-                RestaurantID: localStorage.getItem('userId'),
-              },
-              withCredentials: true,
-            }
-          )
+        //     {
+        //       params: {
+        //         selectedPage: pageNumber,
+        //         category: menuCategory,
+        //         RestaurantID: localStorage.getItem('userId'),
+        //       },
+        //       withCredentials: true,
+        //     }
+        //   )
+        this.props.client
+          .query({
+            query: getBeverageMenu,
+            variables: {
+              RestaurantID: localStorage.getItem('userId'),
+            },
+            fetchPolicy: 'network-only',
+          })
           .then((response) => {
             // console.log(response.data);
-            let Beverages = response.data.allFoods.map((Beverage) => {
+            let Beverages = response.data.getRestaurantInfo.Beverage.map((Beverage) => {
               return {
                 ...Beverage,
               };
@@ -324,18 +341,26 @@ class FoodMenu extends Component {
           });
         break;
       case DESSERTS:
-        axios
-          .get(serverUrl + 'biz/menuFetch', {
-            params: {
-              selectedPage: pageNumber,
-              category: menuCategory,
+        // axios
+        //   .get(serverUrl + 'biz/menuFetch', {
+        //     params: {
+        //       selectedPage: pageNumber,
+        //       category: menuCategory,
+        //       RestaurantID: localStorage.getItem('userId'),
+        //     },
+        //     withCredentials: true,
+        //   })
+        this.props.client
+          .query({
+            query: getDessertMenu,
+            variables: {
               RestaurantID: localStorage.getItem('userId'),
             },
-            withCredentials: true,
+            fetchPolicy: 'network-only',
           })
           .then((response) => {
             // console.log(response.data);
-            let Desserts = response.data.allFoods.map((Dessert) => {
+            let Desserts = response.data.getRestaurantInfo.Dessert.map((Dessert) => {
               return {
                 ...Dessert,
               };
@@ -404,30 +429,39 @@ class FoodMenu extends Component {
     // console.log('Delete Appetizer Food:', foodId, 'catefory: ', category);
     axios.defaults.withCredentials = true;
     //make a post request with the user data
-    axios.post(serverUrl + 'biz/deleteFoodItem', data).then(
-      (response) => {
-        // console.log('Status Code : ', response.status);
-        if (response.status === 200) {
-          // console.log(response.data);
-          const payload = {
-            success: true,
-            message: response.data,
-          };
-          this.props.updateSnackbarData(payload);
-          let pageNo = this.state.selectedPage;
-          if (
-            this.props.foodData.FoodCount % 2 !== 0 &&
-            this.state.selectedPage + 1 === this.props.foodData.PageCount
-          ) {
-            pageNo -= 1;
+    // axios.post(serverUrl + 'biz/deleteFoodItem', data)
+    this.props.client
+      .mutate({
+        mutation: deleteFood,
+        variables: {
+          Category: this.state.showFoodCategory,
+          _id: foodId,
+        },
+      })
+      .then(
+        (response) => {
+          // console.log('Status Code : ', response.status);
+          if (response.data.deleteFood.Result === 'Delete Successfull!!!') {
+            // console.log(response.data);
+            const payload = {
+              success: true,
+              message: response.data.deleteFood.Result,
+            };
+            this.props.updateSnackbarData(payload);
+            // let pageNo = this.state.selectedPage;
+            // if (
+            //   this.props.foodData.FoodCount % 2 !== 0 &&
+            //   this.state.selectedPage + 1 === this.props.foodData.PageCount
+            // ) {
+            //   pageNo -= 1;
+            // }
+            this.fetchFoodMenu(0, this.state.showFoodCategory);
           }
-          this.fetchFoodMenu(pageNo, this.state.showFoodCategory);
+        },
+        (error) => {
+          // console.log(error);
         }
-      },
-      (error) => {
-        // console.log(error);
-      }
-    );
+      );
   };
 
   // change editable food state
@@ -809,6 +843,8 @@ class FoodMenu extends Component {
     }
     this.props.updateFoodData(payload);
   };
+
+  /*
   updateImageUrl = (value, id) => {
     let index = null;
     let food = null;
@@ -870,7 +906,7 @@ class FoodMenu extends Component {
     }
     this.props.updateFoodData(payload);
   };
-
+*/
   //update old food item
   updateFoodItem = (FoodId, event) => {
     let index = null;
@@ -910,33 +946,43 @@ class FoodMenu extends Component {
     event.preventDefault();
     axios.defaults.withCredentials = true;
     //make a post request with the user data
-    axios.post(serverUrl + 'biz/updateFoodItem', foodItem).then(
-      (response) => {
-        // console.log('Status Code : ', response.status);
-        if (response.status === 200) {
-          // console.log(response.data);
-          const payload = {
-            success: true,
-            message: response.data,
-          };
-          this.props.updateSnackbarData(payload);
-          let tmpFood = {
-            RestaurantID: localStorage.getItem('userId'),
-            FoodName: '',
-            MainIngredients: '',
-            Cuisine: '',
-            Description: '',
-            ImageUrl: '',
-            Price: '',
-          };
-          this.setState({ tmpFood, editableId: null });
-          // newFoodId = { ...newFoodId, ...this.state.newFood };
+    // axios.post(serverUrl + 'biz/updateFoodItem', foodItem)
+    this.props.client
+      .mutate({
+        mutation: updateFood,
+        variables: {
+          ...foodItem,
+          Category: foodItem.category,
+          Price: Number(foodItem.Price),
+        },
+      })
+      .then(
+        (response) => {
+          // console.log('Status Code : ', response.status);
+          if (response.data.updateFood.Result === 'Food Item Updated Successfully') {
+            // console.log(response.data);
+            const payload = {
+              success: true,
+              message: response.data.updateFood.Result,
+            };
+            this.props.updateSnackbarData(payload);
+            let tmpFood = {
+              RestaurantID: localStorage.getItem('userId'),
+              FoodName: '',
+              MainIngredients: '',
+              Cuisine: '',
+              Description: '',
+              ImageUrl: '',
+              Price: '',
+            };
+            this.setState({ tmpFood, editableId: null });
+            // newFoodId = { ...newFoodId, ...this.state.newFood };
+          }
+        },
+        (error) => {
+          // console.log(error);
         }
-      },
-      (error) => {
-        // console.log(error);
-      }
-    );
+      );
   };
 
   //cancel Updating food, and revert back to orignal
@@ -1016,7 +1062,7 @@ class FoodMenu extends Component {
     this.props.updateFoodData(payload);
     this.setState({ tmpFood, editableId: null });
   };
-
+  /*
   onChangeFileHandlerOld = (event, id) => {
     if (event.target.files.length === 1) {
       event.preventDefault();
@@ -1049,7 +1095,7 @@ class FoodMenu extends Component {
       // });
     }
   };
-
+*/
   render() {
     return (
       <div>
@@ -1152,7 +1198,7 @@ class FoodMenu extends Component {
                       />
                     ))}
                   </ul>
-                  <ReactPaginate
+                  {/* <ReactPaginate
                     previousLabel={'prev'}
                     nextLabel={'next'}
                     breakLabel={'...'}
@@ -1164,7 +1210,7 @@ class FoodMenu extends Component {
                     containerClassName={'pagination'}
                     subContainerClassName={'pages pagination'}
                     activeClassName={'active'}
-                  />
+                 />*/}
                 </div>
               )}
             </div>
@@ -1258,7 +1304,7 @@ class FoodMenu extends Component {
                       />
                     ))}
                   </ul>
-                  <ReactPaginate
+                  {/* <ReactPaginate
                     previousLabel={'prev'}
                     nextLabel={'next'}
                     breakLabel={'...'}
@@ -1270,7 +1316,7 @@ class FoodMenu extends Component {
                     containerClassName={'pagination'}
                     subContainerClassName={'pages pagination'}
                     activeClassName={'active'}
-                  />
+                 />*/}
                 </div>
               )}
             </div>
@@ -1364,7 +1410,7 @@ class FoodMenu extends Component {
                       />
                     ))}
                   </ul>
-                  <ReactPaginate
+                  {/* <ReactPaginate
                     previousLabel={'prev'}
                     nextLabel={'next'}
                     breakLabel={'...'}
@@ -1376,7 +1422,7 @@ class FoodMenu extends Component {
                     containerClassName={'pagination'}
                     subContainerClassName={'pages pagination'}
                     activeClassName={'active'}
-                  />
+                 />*/}
                 </div>
               )}
             </div>
@@ -1470,7 +1516,7 @@ class FoodMenu extends Component {
                       />
                     ))}
                   </ul>
-                  <ReactPaginate
+                  {/* <ReactPaginate
                     previousLabel={'prev'}
                     nextLabel={'next'}
                     breakLabel={'...'}
@@ -1482,7 +1528,7 @@ class FoodMenu extends Component {
                     containerClassName={'pagination'}
                     subContainerClassName={'pages pagination'}
                     activeClassName={'active'}
-                  />
+                 />*/}
                 </div>
               )}
             </div>
@@ -1576,7 +1622,7 @@ class FoodMenu extends Component {
                       />
                     ))}
                   </ul>
-                  <ReactPaginate
+                  {/*<ReactPaginate
                     previousLabel={'prev'}
                     nextLabel={'next'}
                     breakLabel={'...'}
@@ -1588,7 +1634,7 @@ class FoodMenu extends Component {
                     containerClassName={'pagination'}
                     subContainerClassName={'pages pagination'}
                     activeClassName={'active'}
-                  />
+                  />*/}
                 </div>
               )}
             </div>
@@ -1623,4 +1669,17 @@ const mapDispatchToProps = (dispatch) => {
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(FoodMenu);
+// export default connect(mapStateToProps, mapDispatchToProps)(FoodMenu);
+export default compose(
+  withApollo,
+  graphql(getAppetizerMenu, { name: 'getAppetizerMenu' }),
+  graphql(getSaladMenu, { name: 'getSaladMenu' }),
+  graphql(getBeverageMenu, { name: 'getBeverageMenu' }),
+  graphql(getDessertMenu, { name: 'getDessertMenu' }),
+  graphql(getMainCourseMenu, { name: 'getMainCourseMenu' }),
+  graphql(insertFood, { name: 'insertFood' }),
+  graphql(updateFood, { name: 'updateFood' }),
+  graphql(deleteFood, { name: 'updateFood' }),
+  // graphql(loginUser, { name: 'loginUser' }),
+  connect(mapStateToProps, mapDispatchToProps)
+)(FoodMenu);

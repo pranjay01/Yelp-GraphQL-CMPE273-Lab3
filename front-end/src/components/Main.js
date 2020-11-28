@@ -20,7 +20,7 @@ import SnackBar from './CommonComponents/SnackBar';
 import Following from './Customer/Following/Following';
 import MessageList from './Customer/MessageTab/MessageList';
 import { connect } from 'react-redux';
-import { updateMasterData } from '../constants/action-types';
+import { updateMasterData, updateFoodData } from '../constants/action-types';
 import { graphql, Query, withApollo } from 'react-apollo';
 // import compose from 'lodash.flowright';
 import { flowRight as compose } from 'lodash';
@@ -43,6 +43,15 @@ class Main extends Component {
       let Genders = response.data.signupMasterData.Gender.map((gender) => {
         return { key: gender._id, value: gender.GenderType };
       });
+
+      let Cuisines = response.data.signupMasterData.Cuisine.map((cuisine) => {
+        return { key: cuisine._id, value: cuisine.CuisineName };
+      });
+
+      let payload2 = {
+        Cuisines,
+      };
+      this.props.updateFoodData(payload2);
 
       let payload = {
         Countries,
@@ -129,6 +138,12 @@ const mapDispatchToProps = (dispatch) => {
     updateMasterData: (payload) => {
       dispatch({
         type: updateMasterData,
+        payload,
+      });
+    },
+    updateFoodData: (payload) => {
+      dispatch({
+        type: updateFoodData,
         payload,
       });
     },
