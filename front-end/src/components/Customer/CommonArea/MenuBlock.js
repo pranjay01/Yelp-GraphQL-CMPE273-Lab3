@@ -5,6 +5,10 @@ import serverUrl from '../../../config';
 import { getCustomerBasicInfo } from '../../../constants/action-types';
 import { connect } from 'react-redux';
 import moment from 'moment';
+import { graphql, Query, withApollo } from 'react-apollo';
+import { flowRight as compose } from 'lodash';
+import { getRestaurantOrders, getCustomerInfo } from '../../../queries/BasicFetch';
+import { updateOrderStatus } from '../../../mutations/FoodMutations';
 
 class menuBlock extends Component {
   constructor(props) {
@@ -13,17 +17,25 @@ class menuBlock extends Component {
   }
   componentDidMount() {
     axios.defaults.headers.common['authorization'] = localStorage.getItem('token');
-    axios
-      .get(serverUrl + 'customer/getCustomerInfo', {
-        params: { _id: localStorage.getItem('userId') },
-        withCredentials: true,
+    // axios
+    //   .get(serverUrl + 'customer/getCustomerInfo', {
+    //     params: { _id: localStorage.getItem('userId') },
+    //     withCredentials: true,
+    //   })
+    this.props.client
+      .query({
+        query: getCustomerInfo,
+        variables: {
+          CustomerID: localStorage.getItem('userId'),
+        },
       })
       .then((response) => {
         // console.log(response.data);
-        let JoinDate = moment.utc(response.data.customer.JoinDate);
+        let JoinDate = moment.utc(parseInt(response.data.getCustomerInfo.JoinDate));
         let DOB = '';
-        if (response.data.customer.DOB) {
-          DOB = moment.utc(response.data.customer.DOB);
+        console.log('response.data.getCustomerInfo.DOB', response.data.getCustomerInfo.DOB);
+        if (response.data.getCustomerInfo.DOB) {
+          DOB = moment.utc(parseInt(response.data.getCustomerInfo.DOB));
           DOB = DOB.format('YYYY-MM-DD');
         }
 
@@ -39,10 +51,10 @@ class menuBlock extends Component {
         // let DOB = moment(response.data.customer.DOB);
         // console.log('DOB: ', DOB);
         let customerProfile = {
-          ...response.data.customer,
+          ...response.data.getCustomerInfo,
           JoinDate: JoinDate.format('LL'),
           DOB: DOB,
-          NewEmail: response.data.customer.Email,
+          NewEmail: response.data.getCustomerInfo.Email,
           // DOB: new Date(response.data.customer.DOB),
         };
         let payload = {
@@ -127,4 +139,13 @@ const mapDispatchToProps = (dispatch) => {
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(menuBlock);
+// export default connect(mapStateToProps, mapDispatchToProps)(menuBlock);
+// export default ordersList;
+export default compose(
+  withApollo,
+  // graphql(getRestaurantOrders, { name: 'getRestaurantOrders' }),
+  // graphql(updateOrderStatus, { name: 'updateOrderStatus' }),
+  graphql(getCustomerInfo, { name: 'getCustomerInfo' }),
+  // graphql(loginUser, { name: 'loginUser' }),
+  connect(mapStateToProps, mapDispatchToProps)
+)(menuBlock);

@@ -75,4 +75,12 @@ const updateOrderStatus = gql`
   }
 `;
 
-export { insertFood, updateFood, deleteFood, updateOrderStatus };
+const createNewOrder = gql`
+  mutation($order: OrderInputType, $orderedMenu: [OrderCartInputType]) {
+    createNewOrder(order: $order, orderedMenu: $orderedMenu) {
+      Result
+    }
+  }
+`;
+
+export { insertFood, updateFood, deleteFood, updateOrderStatus, createNewOrder };

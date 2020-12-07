@@ -15,6 +15,9 @@ import { connect } from 'react-redux';
 import { history } from '../../../App';
 import { Redirect } from 'react-router';
 import SuggestedNames from '../Home/SuggestedNames';
+import { graphql, Query, withApollo } from 'react-apollo';
+import { flowRight as compose } from 'lodash';
+import { getSearchStringsQuery } from '../../../queries/staticQueries';
 
 class CustomerNavBar extends Component {
   constructor(props) {
@@ -32,24 +35,30 @@ class CustomerNavBar extends Component {
   componentDidMount() {
     const payload = { serchedString: '' };
     this.props.updateSearchedString(payload);
-    axios
-      .get(
-        serverUrl + 'static/getSearchStrings',
+    // axios
+    //   .get(
+    //     serverUrl + 'static/getSearchStrings',
 
-        { withCredentials: true }
-      )
+    //     { withCredentials: true }
+    //   )
+    this.props.client
+      .query({
+        query: getSearchStringsQuery,
+      })
       .then((response) => {
-        let RestaurantNameStrings = response.data.NameLocation.map((restro) => {
-          return restro.Name;
-        });
-        let LocationStrings = response.data.NameLocation.map((restro) => {
+        let RestaurantNameStrings = response.data.getSearchStringsQuery.NameLocation.map(
+          (restro) => {
+            return restro.Name;
+          }
+        );
+        let LocationStrings = response.data.getSearchStringsQuery.NameLocation.map((restro) => {
           return restro.location;
         });
 
-        let FoodItemsStrings = response.data.FoodItemsStrings.map((food) => {
+        let FoodItemsStrings = response.data.getSearchStringsQuery.FoodItemsStrings.map((food) => {
           return food.FoodName;
         });
-        let CuisinesStrings = response.data.FoodItemsStrings.map((food) => {
+        let CuisinesStrings = response.data.getSearchStringsQuery.FoodItemsStrings.map((food) => {
           return food.Cuisine;
         });
         let payload = {
@@ -550,4 +559,10 @@ const mapDispatchToProps = (dispatch) => {
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(CustomerNavBar);
+// export default connect(mapStateToProps, mapDispatchToProps)(CustomerNavBar);
+export default compose(
+  withApollo,
+  graphql(getSearchStringsQuery, { name: 'getSearchStringsQuery' }),
+
+  connect(mapStateToProps, mapDispatchToProps)
+)(CustomerNavBar);

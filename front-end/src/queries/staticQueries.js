@@ -24,4 +24,20 @@ const getSignupMasterData = gql`
   }
 `;
 
-export { getSignupMasterData };
+const getSearchStringsQuery = gql`
+  query {
+    getSearchStringsQuery {
+      NameLocation {
+        Name
+        location
+      }
+      FoodItemsStrings {
+        FoodName
+        Cuisine
+      }
+      Result
+    }
+  }
+`;
+
+export { getSignupMasterData, getSearchStringsQuery };

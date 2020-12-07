@@ -8,6 +8,9 @@ import serverUrl from '../../../config';
 import { updateSnackbarData, getCustomerBasicInfo } from '../../../constants/action-types';
 import { connect } from 'react-redux';
 import jwt_decode from 'jwt-decode';
+import { graphql, Query, withApollo } from 'react-apollo';
+import { flowRight as compose } from 'lodash';
+import { updateCustomer } from '../../../mutations/UpdateProfile';
 
 class UpdateContactInformation extends Component {
   constructor(props) {
@@ -100,36 +103,46 @@ class UpdateContactInformation extends Component {
     axios.defaults.withCredentials = true;
     //make a post request with the user data
     axios.defaults.headers.common['authorization'] = localStorage.getItem('token');
-    axios.post(serverUrl + 'customer/updateContactInfo', data).then(
-      (response) => {
-        if (response.status === 200) {
-          if (
-            this.props.customerInfo.customerProfile.NewEmail !==
-            this.props.customerInfo.customerProfile.Email
-          ) {
-            const decoded = jwt_decode(response.data.split(' ')[1]);
-            localStorage.setItem('token', response.data);
-            localStorage.setItem('userId', decoded._id);
-            localStorage.setItem('userrole', decoded.userrole);
-            localStorage.setItem('useremail', decoded.email);
-          }
+    // axios.post(serverUrl + 'customer/updateContactInfo', data)
+    this.props.client
+      .mutate({
+        mutation: updateCustomer,
+        variables: {
+          CustomerID: this.props.customerInfo.customerProfile.CustomerID,
+          NewEmail: this.props.customerInfo.customerProfile.NewEmail,
+          PhoneNo: this.props.customerInfo.customerProfile.PhoneNo,
+        },
+      })
+      .then(
+        (response) => {
+          if (response.data.updateCustomer.Result === 'Profile Updated Successfully') {
+            // if (
+            //   this.props.customerInfo.customerProfile.NewEmail !==
+            //   this.props.customerInfo.customerProfile.Email
+            // ) {
+            //   const decoded = jwt_decode(response.data.split(' ')[1]);
+            //   localStorage.setItem('token', response.data);
+            //   localStorage.setItem('userId', decoded._id);
+            //   localStorage.setItem('userrole', decoded.userrole);
+            //   localStorage.setItem('useremail', decoded.email);
+            // }
 
-          let payload = {
-            success: true,
-            message: 'Contact Information Updated Successfully!',
-          };
-          this.props.updateSnackbarData(payload);
+            let payload = {
+              success: true,
+              message: 'Contact Information Updated Successfully!',
+            };
+            this.props.updateSnackbarData(payload);
+          }
+        },
+        (error) => {
+          console.log(error);
+          if (error.response.status === 401) {
+            this.setState({
+              errors: { ...this.state.errors, ...{ submitError: error.response.data } },
+            });
+          }
         }
-      },
-      (error) => {
-        console.log(error);
-        if (error.response.status === 401) {
-          this.setState({
-            errors: { ...this.state.errors, ...{ submitError: error.response.data } },
-          });
-        }
-      }
-    );
+      );
   };
 
   render() {
@@ -301,4 +314,10 @@ const mapDispatchToProps = (dispatch) => {
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(UpdateContactInformation);
+// export default connect(mapStateToProps, mapDispatchToProps)(UpdateContactInformation);
+export default compose(
+  withApollo,
+  graphql(updateCustomer, { name: 'updateCustomer' }),
+  // graphql(loginUser, { name: 'loginUser' }),
+  connect(mapStateToProps, mapDispatchToProps)
+)(UpdateContactInformation);

@@ -11,6 +11,9 @@ import OrderDetails from '../../Restaurant/Orders/OrderDetails';
 import { updateOrderStore, updateLeftPannelHighlight } from '../../../constants/action-types';
 import { connect } from 'react-redux';
 import ReactPaginate from 'react-paginate';
+import { graphql, Query, withApollo } from 'react-apollo';
+import { flowRight as compose } from 'lodash';
+import { getAllCustomerOrders } from '../../../queries/BasicFetch';
 
 class OrdersList extends Component {
   constructor(props) {
@@ -20,32 +23,43 @@ class OrdersList extends Component {
 
   commonFetch(selectedPage = 0, sortOrder, filter1, filter2) {
     axios.defaults.headers.common['authorization'] = localStorage.getItem('token');
-    axios
-      .get(serverUrl + 'customer/getAllOrders', {
-        params: {
+    // axios
+    //   .get(serverUrl + 'customer/getAllOrders', {
+    //     params: {
+    //       CustomerID: localStorage.getItem('userId'),
+    //       selectedPage,
+    //       sortOrder,
+    //       filter1,
+    //       filter2,
+    //     },
+    //     withCredentials: true,
+    //   })
+    this.props.client
+      .query({
+        query: getAllCustomerOrders,
+        variables: {
           CustomerID: localStorage.getItem('userId'),
-          selectedPage,
-          sortOrder,
+          // selectedPage,
+          sortOrder: Number(sortOrder),
           filter1,
           filter2,
         },
-        withCredentials: true,
       })
       .then((response) => {
-        console.log(response.data);
-        let OrderList = response.data.OrderList.map((order) => {
+        console.log('response.data.getAllCustomerOrders', response.data.getAllCustomerOrders);
+        let OrderList = response.data.getAllCustomerOrders.map((order) => {
           return {
             ...order,
-            OrderedDate: new Date(order.OrderedDate),
+            OrderedDate: new Date(parseInt(order.OrderedDate)),
           };
         });
 
         let payload = {
           OrderList,
-          orderCount: response.data.orderCount,
-          PageCount: Math.ceil(response.data.orderCount / 3),
+          // orderCount: response.data.orderCount,
+          // PageCount: Math.ceil(response.data.orderCount / 3),
           sortOrder,
-          selectedPage,
+          // selectedPage,
           filter1,
           filter2,
         };
@@ -388,5 +402,13 @@ const mapDispatchToProps = (dispatch) => {
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(OrdersList);
+// export default connect(mapStateToProps, mapDispatchToProps)(OrdersList);
 // export default OrdersList;
+export default compose(
+  withApollo,
+  // graphql(getRestaurantOrders, { name: 'getRestaurantOrders' }),
+  // graphql(updateOrderStatus, { name: 'updateOrderStatus' }),
+  graphql(getAllCustomerOrders, { name: 'getAllCustomerOrders' }),
+  // graphql(loginUser, { name: 'loginUser' }),
+  connect(mapStateToProps, mapDispatchToProps)
+)(OrdersList);

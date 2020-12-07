@@ -7,6 +7,9 @@ import axios from 'axios';
 import serverUrl from '../../../config';
 import { updateSnackbarData, getCustomerBasicInfo } from '../../../constants/action-types';
 // import {  } from '../../../constants/action-types';
+import { graphql, Query, withApollo } from 'react-apollo';
+import { flowRight as compose } from 'lodash';
+import { updateCustomer } from '../../../mutations/UpdateProfile';
 
 import { connect } from 'react-redux';
 
@@ -67,7 +70,7 @@ class UpdateProfile extends Component {
       });
     }
   };
-
+  /*
   onChangeFileHandler = (event) => {
     if (event.target.files.length === 1) {
       axios.defaults.headers.common['authorization'] = localStorage.getItem('token');
@@ -104,32 +107,48 @@ class UpdateProfile extends Component {
         });
     }
   };
-
+*/
   updateProfile = (e) => {
     e.preventDefault();
+    console.log(
+      'this.props.customerInfo.customerProfile.DOB',
+      this.props.customerInfo.customerProfile.DOB
+    );
     const data = {
       ...this.props.customerInfo.customerProfile,
       CustomerID: localStorage.getItem('userId'),
+      Zip: Number(this.props.customerInfo.customerProfile.Zip),
+      PhoneNo: Number(this.props.customerInfo.customerProfile.PhoneNo),
+      CountryCode: Number(this.props.customerInfo.customerProfile.CountryCode),
+      // DOB: JSON.stringify(this.props.customerInfo.customerProfile.DOB),
     };
     axios.defaults.headers.common['authorization'] = localStorage.getItem('token');
     axios.defaults.withCredentials = true;
     //make a post request with the user data
-    axios.put(serverUrl + 'customer/updateProfile', data).then(
-      (response) => {
-        // console.log('Status Code : ', response.status);
-        if (response.status === 204) {
-          // console.log(response.data);
-          let payload = {
-            success: true,
-            message: 'Profile Updated Successfully!',
-          };
-          this.props.updateSnackbarData(payload);
+    // axios.put(serverUrl + 'customer/updateProfile', data)
+    this.props.client
+      .mutate({
+        mutation: updateCustomer,
+        variables: {
+          ...data,
+        },
+      })
+      .then(
+        (response) => {
+          // console.log('Status Code : ', response.status);
+          if (response.data.updateCustomer.Result === 'Profile Updated Successfully') {
+            // console.log(response.data);
+            let payload = {
+              success: true,
+              message: 'Profile Updated Successfully!',
+            };
+            this.props.updateSnackbarData(payload);
+          }
+        },
+        (error) => {
+          // console.log(error);
         }
-      },
-      (error) => {
-        // console.log(error);
-      }
-    );
+      );
   };
 
   render() {
@@ -449,4 +468,10 @@ const mapDispatchToProps = (dispatch) => {
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(UpdateProfile);
+// export default connect(mapStateToProps, mapDispatchToProps)(UpdateProfile);
+export default compose(
+  withApollo,
+  graphql(updateCustomer, { name: 'updateCustomer' }),
+  // graphql(loginUser, { name: 'loginUser' }),
+  connect(mapStateToProps, mapDispatchToProps)
+)(UpdateProfile);

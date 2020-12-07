@@ -8,8 +8,11 @@ import { updateRestaurantArray } from '../../../constants/action-types';
 // import { history } from '../../../App';
 import { connect } from 'react-redux';
 import MapContainer from './MapContainer';
-import ReactPaginate from 'react-paginate';
+// import ReactPaginate from 'react-paginate';
 // import { Redirect } from 'react-router';
+import { graphql, Query, withApollo } from 'react-apollo';
+import { flowRight as compose } from 'lodash';
+import { getRestaurantResultQuery } from '../../../queries/BasicFetch';
 
 class RestaurantList extends Component {
   constructor(props) {
@@ -24,40 +27,53 @@ class RestaurantList extends Component {
   }
 
   commonFetch(selectedPage = 0) {
-    axios
-      .get(serverUrl + 'static/fetchRestaurantResults', {
-        params: {
-          selectedPage,
+    // axios
+    //   .get(serverUrl + 'static/fetchRestaurantResults', {
+    //     params: {
+    //       selectedPage,
+    //       filter: localStorage.getItem('SearchFilter'),
+    //       searchString: localStorage.getItem('SearchedString'),
+    //     },
+    //     withCredentials: true,
+    //   })
+    this.props.client
+      .query({
+        query: getRestaurantResultQuery,
+        variables: {
           filter: localStorage.getItem('SearchFilter'),
           searchString: localStorage.getItem('SearchedString'),
         },
-        withCredentials: true,
       })
       .then((response) => {
-        console.log(response.data);
-        let markers = response.data.restaurantList.map((restaurant) => {
+        console.log(
+          'response.data.getRestaurantResultQuery',
+          response.data.getRestaurantResultQuery
+        );
+        let markers = response.data.getRestaurantResultQuery.restaurantList.map((restaurant) => {
           //markers.concat({ lat: restaurant.lat, lng: restaurant.lng });
           return {
             title: restaurant.Name,
             position: { lat: restaurant.Latitude, lng: restaurant.Longitude },
           };
         });
-        let allRestaurants = response.data.restaurantList.map((restaurant) => {
-          //markers.concat({ lat: restaurant.lat, lng: restaurant.lng });
-          return {
-            ...restaurant,
-            ID: restaurant.RestaurantID,
-            Name: restaurant.Name,
-            DineIn: restaurant.DineIn,
-            YelpDelivery: restaurant.YelpDelivery,
-            CurbsidePickup: restaurant.CurbsidePickup,
-            AvgRating: restaurant.AvgRating,
-            ReviewCounts: restaurant.ReviewCounts,
-            ImageUrl: restaurant.ImageURL ? restaurant.ImageURL : '',
-            OpeningTime: restaurant.OpeningTime ? restaurant.OpeningTime : '',
-            ClosingTime: restaurant.ClosingTime ? restaurant.ClosingTime : '',
-          };
-        });
+        let allRestaurants = response.data.getRestaurantResultQuery.restaurantList.map(
+          (restaurant) => {
+            //markers.concat({ lat: restaurant.lat, lng: restaurant.lng });
+            return {
+              ...restaurant,
+              ID: restaurant.RestaurantID,
+              Name: restaurant.Name,
+              DineIn: restaurant.DineIn,
+              YelpDelivery: restaurant.YelpDelivery,
+              CurbsidePickup: restaurant.CurbsidePickup,
+              AvgRating: restaurant.AvgRating,
+              ReviewCounts: restaurant.ReviewCounts,
+              ImageUrl: restaurant.ImageURL ? restaurant.ImageURL : '',
+              OpeningTime: restaurant.OpeningTime ? restaurant.OpeningTime : '',
+              ClosingTime: restaurant.ClosingTime ? restaurant.ClosingTime : '',
+            };
+          }
+        );
 
         this.setState({
           markers,
@@ -66,8 +82,8 @@ class RestaurantList extends Component {
         const payload = {
           // restaurantSearchResults: allRestaurants,
           selectedPage,
-          restaurantCount: response.data.restaurantCount,
-          pageCount: Math.ceil(response.data.restaurantCount / 2),
+          //  restaurantCount: response.data.restaurantCount,
+          //  pageCount: Math.ceil(response.data.restaurantCount / 2),
           BackupRestaurantsList: allRestaurants,
         };
         this.props.updateRestaurantArray(payload);
@@ -220,7 +236,7 @@ class RestaurantList extends Component {
                         />
                       ))}
                     </ul>
-                    <div style={{ position: 'absolute', left: '20%', bottom: '3%', right: '0' }}>
+                    {/* <div style={{ position: 'absolute', left: '20%', bottom: '3%', right: '0' }}>
                       <ReactPaginate
                         previousLabel={'prev'}
                         nextLabel={'next'}
@@ -234,7 +250,7 @@ class RestaurantList extends Component {
                         subContainerClassName={'pages pagination'}
                         activeClassName={'active'}
                       />
-                    </div>
+                        </div>*/}
                   </div>
                 </div>
               </div>
@@ -283,4 +299,12 @@ const mapDispatchToProps = (dispatch) => {
     },
   };
 };
-export default connect(mapStateToProps, mapDispatchToProps)(RestaurantList);
+// export default connect(mapStateToProps, mapDispatchToProps)(RestaurantList);
+export default compose(
+  withApollo,
+  // graphql(getRestaurantOrders, { name: 'getRestaurantOrders' }),
+  // graphql(updateOrderStatus, { name: 'updateOrderStatus' }),
+  graphql(getRestaurantResultQuery, { name: 'getRestaurantResultQuery' }),
+  // graphql(loginUser, { name: 'loginUser' }),
+  connect(mapStateToProps, mapDispatchToProps)
+)(RestaurantList);

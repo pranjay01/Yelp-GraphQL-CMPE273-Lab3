@@ -268,7 +268,7 @@ class RestaurantLogin extends Component {
         },
         (error) => {
           this.setState({
-            errorBlock: error.response.data,
+            // errorBlock: error.response.data,
             inputBlockHighlight: 'errorBlock',
           });
         }

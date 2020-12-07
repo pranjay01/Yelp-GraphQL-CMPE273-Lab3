@@ -249,6 +249,7 @@ const generateOrder = async (order) => {
     // console.log(order);
     const newOrder = new Orders({
       ...order.order,
+      OrderedDate: new Date(),
     });
     const createdOrder = await newOrder.save();
     const orderCart = [...order.orderedMenu];
@@ -273,12 +274,14 @@ const submitReview = async (args) => {
   try {
     const newReview = new Reviews({
       ...args,
+      ReviewDate: new Date(),
     });
     await Restaurant.updateOne(
       { RestaurantID: args.RestaurantID },
       { ReviewCounts: args.ReviewCounts, TotalRating: args.TotalRating }
     ).exec();
     results = await newReview.save();
+    results.Result = 'Success';
   } catch (error) {
     response.writeHead(500, {
       'Content-Type': 'text/plain',

@@ -10,7 +10,7 @@ import { updateSnackbarData } from '..//../constants/action-types';
 import jwt_decode from 'jwt-decode';
 import { graphql, Query, withApollo } from 'react-apollo';
 import { flowRight as compose } from 'lodash';
-import { customerSignup } from '../../mutations/signupMutations';
+import { customerSignup, loginUser } from '../../mutations/signupMutations';
 // import compose from 'lodash.flowright';
 
 //Define a Login Component
@@ -172,38 +172,51 @@ class CustomerLogin extends Component {
     //set the with credentials to true
     axios.defaults.withCredentials = true;
     //make a post request with the user data
-    axios.post(serverUrl + 'customer/login', data).then(
-      (response) => {
-        console.log('Status Code : ', response.status);
-        if (response.status === 200) {
-          const decoded = jwt_decode(response.data.split(' ')[1]);
-          localStorage.setItem('token', response.data);
-          localStorage.setItem('userId', decoded._id);
-          localStorage.setItem('userrole', decoded.userrole);
-          localStorage.setItem('useremail', decoded.email);
-
-          let payload = {
-            userEmail: decoded.email,
-            role: decoded.Role,
-            loginStatus: true,
-          };
-          this.props.updateLoginSuccess(payload);
+    // axios.post(serverUrl + 'customer/login', data)
+    this.props.client
+      .mutate({
+        mutation: loginUser,
+        variables: {
+          Email: this.state.username,
+          Password: this.state.password,
+          Role: 'Customer',
+        },
+      })
+      .then(
+        (response) => {
+          console.log('Login : ', response.data.loginUser);
+          if (response.data.loginUser.Result === 'Login Success') {
+            localStorage.setItem('token', 'toke');
+            localStorage.setItem('userId', response.data.loginUser._id);
+            localStorage.setItem('userrole', response.data.loginUser.Role);
+            localStorage.setItem('useremail', response.data.loginUser.Email);
+            let payload = {
+              userEmail: response.data.loginUser.Email,
+              role: response.data.loginUser.Role,
+              loginStatus: true,
+            };
+            this.props.updateLoginSuccess(payload);
+            this.setState({
+              authFlag: false,
+            });
+          } else if (response.data.loginUser.Result === 'Invalid Credentials') {
+            this.setState({
+              errorBlock: response.data.loginUser.Result,
+              inputBlockHighlight: 'errorBlock',
+            });
+          } else {
+            this.setState({
+              authFlag: false,
+            });
+          }
+        },
+        (error) => {
           this.setState({
-            authFlag: true,
-          });
-        } else {
-          this.setState({
-            authFlag: false,
+            errorBlock: error.response.data,
+            inputBlockHighlight: 'errorBlock',
           });
         }
-      },
-      (error) => {
-        this.setState({
-          errorBlock: error.response.data,
-          inputBlockHighlight: 'errorBlock',
-        });
-      }
-    );
+      );
   };
 
   render() {
@@ -685,5 +698,6 @@ const mapDispatchToProps = (dispatch) => {
 export default compose(
   withApollo,
   graphql(customerSignup, { name: 'customerSignup' }),
+  graphql(loginUser, { name: 'loginUser' }),
   connect(mapStateToProps, mapDispatchToProps)
 )(CustomerLogin);

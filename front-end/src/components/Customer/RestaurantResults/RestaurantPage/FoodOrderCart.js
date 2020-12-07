@@ -4,6 +4,9 @@ import serverUrl from '../../../../config';
 import { updateSnackbarData, updateRestaurantFoodStore } from '../../../../constants/action-types';
 import { connect } from 'react-redux';
 import ReactPaginate from 'react-paginate';
+import { graphql, Query, withApollo } from 'react-apollo';
+import { flowRight as compose } from 'lodash';
+import { getRestaurantInfo } from '../../../../queries/BasicFetch';
 
 // import FoodInfo from './FoodInfo';
 class FoodOrderCart extends Component {
@@ -28,21 +31,40 @@ class FoodOrderCart extends Component {
   }
   commonFetch(category, selectedPage = 0) {
     axios.defaults.headers.common['authorization'] = localStorage.getItem('token');
-    axios
-      .get(
-        serverUrl + 'static/menuFetch',
+    // axios
+    //   .get(
+    //     serverUrl + 'static/menuFetch',
 
-        {
-          params: {
-            selectedPage,
-            category,
-            RestaurantID: localStorage.getItem('restaurantPageID'),
-          },
-          withCredentials: true,
-        }
-      )
+    //     {
+    //       params: {
+    //         selectedPage,
+    //         category,
+    //         RestaurantID: localStorage.getItem('restaurantPageID'),
+    //       },
+    //       withCredentials: true,
+    //     }
+    //   )
+    this.props.client
+      .query({
+        query: getRestaurantInfo,
+        variables: {
+          RestaurantID: localStorage.getItem('restaurantPageID'),
+        },
+      })
       .then((response) => {
-        let FoodMenu = response.data.allFoods.map((food) => {
+        let FoodList = [];
+        if (category === 'APPETIZERS') {
+          FoodList = response.data.getRestaurantInfo.Appetizer;
+        } else if (category === 'MAIN_COURSE') {
+          FoodList = response.data.getRestaurantInfo.MainCourse;
+        } else if (category === 'SALADS') {
+          FoodList = response.data.getRestaurantInfo.Salad;
+        } else if (category === 'BEVERAGES') {
+          FoodList = response.data.getRestaurantInfo.Beverage;
+        } else if (category === 'DESSERTS') {
+          FoodList = response.data.getRestaurantInfo.Dessert;
+        }
+        let FoodMenu = FoodList.map((food) => {
           return {
             ...food,
             Quantity: this.fromFoodCart(food._id, category),
@@ -51,8 +73,8 @@ class FoodOrderCart extends Component {
         // });
         const payload = {
           FoodMenu,
-          PageCount: Math.ceil(response.data.foodCount / 2),
-          FoodCount: response.data.foodCount,
+          // PageCount: Math.ceil(response.data.foodCount / 2),
+          // FoodCount: response.data.foodCount,
         };
         this.props.updateRestaurantFoodStore(payload);
       });
@@ -223,7 +245,7 @@ class FoodOrderCart extends Component {
                 <table id="customers">
                   <tbody>
                     <tr>
-                      <th>Image</th>
+                      {/* <th>Image</th>*/}
                       <th>Food Item</th>
                       <th>cuisine</th>
                       <th>Description</th>
@@ -233,12 +255,12 @@ class FoodOrderCart extends Component {
                     </tr>
                     {this.props.RestaurantFoodMenuStore.FoodMenu.map((food) => (
                       <tr key={food._id}>
-                        <td>
+                        {/* <td>
                           <img
                             style={{ height: '100px', width: '100px' }}
                             src={food.ImageUrl}
                           ></img>
-                        </td>
+                       </td>*/}
                         <td>{food.FoodName}</td>
                         <td>{food.Cuisine}</td>
                         <td>{food.Description}</td>
@@ -308,7 +330,7 @@ class FoodOrderCart extends Component {
                 <table id="customers">
                   <tbody>
                     <tr>
-                      <th>Image</th>
+                      {/* <th>Image</th>*/}
                       <th>Food Item</th>
                       <th>cuisine</th>
                       <th>Description</th>
@@ -318,12 +340,12 @@ class FoodOrderCart extends Component {
                     </tr>
                     {this.props.RestaurantFoodMenuStore.FoodMenu.map((food) => (
                       <tr key={food._id}>
-                        <td>
+                        {/*<td>
                           <img
                             style={{ height: '100px', width: '100px' }}
                             src={food.ImageUrl}
                           ></img>
-                        </td>
+                        </td>*/}
                         <td>{food.FoodName}</td>
                         <td>{food.Cuisine}</td>
                         <td>{food.Description}</td>
@@ -393,7 +415,7 @@ class FoodOrderCart extends Component {
                 <table id="customers">
                   <tbody>
                     <tr>
-                      <th>Image</th>
+                      {/* <th>Image</th>*/}
                       <th>Food Item</th>
                       <th>cuisine</th>
                       <th>Description</th>
@@ -403,12 +425,12 @@ class FoodOrderCart extends Component {
                     </tr>
                     {this.props.RestaurantFoodMenuStore.FoodMenu.map((food) => (
                       <tr key={food._id}>
-                        <td>
+                        {/* <td>
                           <img
                             style={{ height: '100px', width: '100px' }}
                             src={food.ImageUrl}
                           ></img>
-                        </td>
+                       </td>*/}
                         <td>{food.FoodName}</td>
                         <td>{food.Cuisine}</td>
                         <td>{food.Description}</td>
@@ -478,7 +500,7 @@ class FoodOrderCart extends Component {
                 <table id="customers">
                   <tbody>
                     <tr>
-                      <th>Image</th>
+                      {/* <th>Image</th>*/}
                       <th>Food Item</th>
                       <th>cuisine</th>
                       <th>Description</th>
@@ -488,12 +510,12 @@ class FoodOrderCart extends Component {
                     </tr>
                     {this.props.RestaurantFoodMenuStore.FoodMenu.map((food) => (
                       <tr key={food._id}>
-                        <td>
+                        {/* <td>
                           <img
                             style={{ height: '100px', width: '100px' }}
                             src={food.ImageUrl}
                           ></img>
-                        </td>
+                       </td>*/}
                         <td>{food.FoodName}</td>
                         <td>{food.Cuisine}</td>
                         <td>{food.Description}</td>
@@ -561,7 +583,7 @@ class FoodOrderCart extends Component {
                 <table id="customers">
                   <tbody>
                     <tr>
-                      <th>Image</th>
+                      {/* <th>Image</th>*/}
                       <th>Food Item</th>
                       <th>cuisine</th>
                       <th>Description</th>
@@ -571,12 +593,12 @@ class FoodOrderCart extends Component {
                     </tr>
                     {this.props.RestaurantFoodMenuStore.FoodMenu.map((food) => (
                       <tr key={food._id}>
-                        <td>
+                        {/* <td>
                           <img
                             style={{ height: '100px', width: '100px' }}
                             src={food.ImageUrl}
                           ></img>
-                        </td>
+                       </td>*/}
                         <td>{food.FoodName}</td>
                         <td>{food.Cuisine}</td>
                         <td>{food.Description}</td>
@@ -650,6 +672,12 @@ const mapDispatchToProps = (dispatch) => {
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(FoodOrderCart);
+// export default connect(mapStateToProps, mapDispatchToProps)(FoodOrderCart);
 
 // export default FoodOrderCart;
+export default compose(
+  withApollo,
+  graphql(getRestaurantInfo, { name: 'getRestaurantInfo' }),
+  // graphql(loginUser, { name: 'loginUser' }),
+  connect(mapStateToProps, mapDispatchToProps)
+)(FoodOrderCart);

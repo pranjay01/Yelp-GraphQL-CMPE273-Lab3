@@ -6,6 +6,10 @@ import WriteAReview from './WriteAReview';
 import { updateSnackbarData, updateSearchedRestaurant } from '../../../../constants/action-types';
 import { connect } from 'react-redux';
 import moment from 'moment';
+import { graphql, Query, withApollo } from 'react-apollo';
+import { flowRight as compose } from 'lodash';
+import { getRestaurantInfo } from '../../../../queries/BasicFetch';
+import { createNewReview } from '../../../../mutations/UpdateProfile';
 
 class RestaurantLeftReviewPart extends Component {
   constructor(props) {
@@ -15,15 +19,23 @@ class RestaurantLeftReviewPart extends Component {
     };
   }
   componentDidMount() {
-    axios
-      .get(serverUrl + 'static/fetchRestaurantProfileForCustomer', {
-        params: { restroId: localStorage.getItem('restaurantPageID') },
-        withCredentials: true,
+    // axios
+    //   .get(serverUrl + 'static/fetchRestaurantProfileForCustomer', {
+    //     params: { restroId: localStorage.getItem('restaurantPageID') },
+    //     withCredentials: true,
+    //   })
+    this.props.client
+      .query({
+        query: getRestaurantInfo,
+        variables: {
+          RestaurantID: localStorage.getItem('restaurantPageID'),
+        },
       })
       .then((response) => {
         console.log('Review list Fetched', response.data);
         const payload = {
-          ...response.data,
+          RestaurantProfile: { ...response.data.getRestaurantInfo },
+          ReviewList: response.data.getRestaurantInfo.Review,
         };
         this.props.updateSearchedRestaurant(payload);
       });
@@ -43,7 +55,7 @@ class RestaurantLeftReviewPart extends Component {
       TotalRating:
         Number(this.props.restaurantProfileStore.RestaurantProfile.TotalRating) + Number(rating),
       Description: review,
-      Rating: rating,
+      Rating: Number(rating),
       CustomerID: localStorage.getItem('userId'),
       CustomerName:
         this.props.customerInfo.customerProfile.FirstName +
@@ -56,43 +68,54 @@ class RestaurantLeftReviewPart extends Component {
       ImageUrl: this.props.customerInfo.customerProfile.ImageURL
         ? this.props.customerInfo.customerProfile.ImageURL
         : '',
-      ReviewDate: ReviewDate.format('YYYY-MM-DD'),
+      // ReviewDate: ReviewDate.format('YYYY-MM-DD'),
     };
     axios.defaults.withCredentials = true;
     //make a post request with the user data
     axios.defaults.headers.common['authorization'] = localStorage.getItem('token');
-    axios.post(serverUrl + 'customer/submitReview', data).then(
-      (response) => {
-        console.log('Status Code : ', response.status);
-        if (response.status === 201) {
-          console.log(response.data);
-          this.setState({
-            showReview: false,
-          });
-          let payload = {
-            success: true,
-            message: 'Review Submitted Successfull!!!',
+    // axios.post(serverUrl + 'customer/submitReview', data)
+    this.props.client
+      .mutate({
+        mutation: createNewReview,
+        variables: {
+          ...data,
+        },
+      })
+      .then(
+        (response) => {
+          console.log('Status Code : ', response.status);
+          if (response.data.createNewReview.Result === 'Success') {
+            // console.log(response.data);
+            this.setState({
+              showReview: false,
+            });
+            let payload = {
+              success: true,
+              message: 'Review Submitted Successfull!!!',
+            };
+            this.props.updateSnackbarData(payload);
+          }
+          const ReviewList = [
+            ...this.props.restaurantProfileStore.ReviewList,
+            response.data.createNewReview,
+          ];
+          // const ReviewCount
+          const payload = {
+            ReviewList,
+            RestaurantProfile: {
+              ...this.props.restaurantProfileStore.RestaurantProfile,
+              ReviewCounts: this.props.restaurantProfileStore.RestaurantProfile.ReviewCounts + 1,
+              TotalRating:
+                Number(this.props.restaurantProfileStore.RestaurantProfile.TotalRating) +
+                Number(rating),
+            },
           };
-          this.props.updateSnackbarData(payload);
+          this.props.updateSearchedRestaurant(payload);
+        },
+        (error) => {
+          console.log(error);
         }
-        const ReviewList = [...this.props.restaurantProfileStore.ReviewList, response.data];
-        // const ReviewCount
-        const payload = {
-          ReviewList,
-          RestaurantProfile: {
-            ...this.props.restaurantProfileStore.RestaurantProfile,
-            ReviewCounts: this.props.restaurantProfileStore.RestaurantProfile.ReviewCounts + 1,
-            TotalRating:
-              Number(this.props.restaurantProfileStore.RestaurantProfile.TotalRating) +
-              Number(rating),
-          },
-        };
-        this.props.updateSearchedRestaurant(payload);
-      },
-      (error) => {
-        console.log(error);
-      }
-    );
+      );
   };
   render() {
     let OpeningTime = new Date(
@@ -432,6 +455,12 @@ const mapDispatchToProps = (dispatch) => {
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(RestaurantLeftReviewPart);
+// export default connect(mapStateToProps, mapDispatchToProps)(RestaurantLeftReviewPart);
 
 // export default RestaurantLeftReviewPart;
+export default compose(
+  withApollo,
+  graphql(getRestaurantInfo, { name: 'getRestaurantInfo' }),
+  graphql(createNewReview, { name: 'createNewReview' }),
+  connect(mapStateToProps, mapDispatchToProps)
+)(RestaurantLeftReviewPart);

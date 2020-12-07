@@ -509,12 +509,7 @@ const OrderInputType = new GraphQLInputObjectType({
     OrderType: {
       type: GraphQLString,
     },
-    DeliveryStatus: {
-      type: GraphQLString,
-    },
-    DeliverStatusID: {
-      type: GraphQLInt,
-    },
+
     Bill: {
       type: GraphQLFloat,
     },
@@ -545,6 +540,9 @@ const OrderCartType = new GraphQLObjectType({
 const OrderCartInputType = new GraphQLInputObjectType({
   name: 'OrderCartInputType',
   fields: () => ({
+    FoodID: {
+      type: GraphQLString,
+    },
     FoodName: {
       type: GraphQLString,
     },
@@ -588,6 +586,9 @@ const ReviewType = new GraphQLObjectType({
       type: GraphQLString,
     },
     ReviewDate: {
+      type: GraphQLString,
+    },
+    Result: {
       type: GraphQLString,
     },
   }),
@@ -1226,9 +1227,6 @@ const Mutation = new GraphQLObjectType({
           type: GraphQLString,
         },
         ImageUrl: {
-          type: GraphQLString,
-        },
-        ReviewDate: {
           type: GraphQLString,
         },
       },

@@ -5,6 +5,9 @@ import serverUrl from '../../../../config';
 import FoodOrderCart from './FoodOrderCart';
 import { updateSnackbarData, updateRestaurantFoodStore } from '../../../../constants/action-types';
 import { connect } from 'react-redux';
+import { graphql, Query, withApollo } from 'react-apollo';
+import { flowRight as compose } from 'lodash';
+import { createNewOrder } from '../../../../mutations/FoodMutations';
 
 // import FoodOrderCart from './FoodOrderCart_tmp';
 class RestaurantRightPart extends Component {
@@ -35,7 +38,7 @@ class RestaurantRightPart extends Component {
   };
 
   orderFood = (foodCart, Price) => {
-    const data = {
+    const order = {
       CustomerID: localStorage.getItem('userId'),
       RestaurantID: localStorage.getItem('restaurantPageID'),
       RestaurantName: this.props.restaurantProfileStore.RestaurantProfile.Name,
@@ -46,35 +49,51 @@ class RestaurantRightPart extends Component {
         this.props.customerInfo.customerProfile.FirstName +
         ' ' +
         this.props.customerInfo.customerProfile.LastName,
-      OrderedDate: new Date(),
+      OrderedDate: '',
       Bill: Price,
-      OrderCart: foodCart,
+      // OrderCart: foodCart,
       Address: this.state.address,
       OrderType: this.state.currentMode,
     };
+    let finalCart = foodCart.map((cartitem) => {
+      return {
+        ...cartitem,
+        Quantity: Number(cartitem.Quantity),
+      };
+    });
+    const orderedMenu = finalCart;
     axios.defaults.withCredentials = true;
     //make a post request with the user data
     axios.defaults.headers.common['authorization'] = localStorage.getItem('token');
-    axios.post(serverUrl + 'customer/generateOrder', data).then(
-      (response) => {
-        console.log('Status Code : ', response.status);
-        if (response.status === 201) {
-          console.log(response.data);
-          this.setState({
-            showFoodMenu: !this.state.showFoodMenu,
-            //RegisteredCustomerList: [],
-          });
-          let payload = {
-            success: true,
-            message: 'Order Created Successfully!',
-          };
-          this.props.updateSnackbarData(payload);
+    // axios.post(serverUrl + 'customer/generateOrder', data)
+    this.props.client
+      .mutate({
+        mutation: createNewOrder,
+        variables: {
+          order,
+          orderedMenu,
+        },
+      })
+      .then(
+        (response) => {
+          // console.log('Status Code : ', response.status);
+          if (response.data.createNewOrder.Result === 'Order Created Successfully') {
+            console.log(response.data);
+            this.setState({
+              showFoodMenu: !this.state.showFoodMenu,
+              //RegisteredCustomerList: [],
+            });
+            let payload = {
+              success: true,
+              message: 'Order Created Successfully!',
+            };
+            this.props.updateSnackbarData(payload);
+          }
+        },
+        (error) => {
+          console.log(error);
         }
-      },
-      (error) => {
-        console.log(error);
-      }
-    );
+      );
 
     console.log('Order Confirmed', foodCart);
   };
@@ -294,4 +313,12 @@ const mapDispatchToProps = (dispatch) => {
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(RestaurantRightPart);
+// export default connect(mapStateToProps, mapDispatchToProps)(RestaurantRightPart);
+export default compose(
+  withApollo,
+  // graphql(getRestaurantOrders, { name: 'getRestaurantOrders' }),
+  // graphql(updateOrderStatus, { name: 'updateOrderStatus' }),
+  graphql(createNewOrder, { name: 'createNewOrder' }),
+  // graphql(loginUser, { name: 'loginUser' }),
+  connect(mapStateToProps, mapDispatchToProps)
+)(RestaurantRightPart);
